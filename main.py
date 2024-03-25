@@ -3,6 +3,7 @@ import argparse
 from MIA_Evaluate.meminf import *
 from dataloader.dataloader_adult import prepare_dataset_adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
+from dataloader.dataloader_hospital import prepare_dataset_hospital
 from dataloader.dataloader_obesity import prepare_dataset_obesity
 from dataloader.dataloader_student import prepare_dataset_student
 from models.train_models import *
@@ -68,6 +69,9 @@ def main():
     elif dataset_name == "Student":
         print("Student")
         num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_student()
+    elif dataset_name == "Hospital":
+        print("Hospital")
+        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_hospital()
 
     # 训练目标模型
     if args.train_target:

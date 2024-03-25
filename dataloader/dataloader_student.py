@@ -64,6 +64,7 @@ def prepare_dataset_student():
     )
 
     num_features = next(iter(dataset))[0].shape[0]
+    print(each_length)
     print(num_features)
     num_classes = 3  # 输出类别数
 
