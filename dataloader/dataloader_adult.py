@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,7 +12,7 @@ from typing import Any, Callable, List, Optional, Union, Tuple
 from models.define_models import  Net_1
 
 
-class Adult(torch.utils.data.Dataset):
+class Adult(Dataset):
     def __init__(self) -> None:
         super().__init__()
         self.root = './dataloader/datasets/adult/'
