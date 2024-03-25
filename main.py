@@ -3,6 +3,7 @@ import argparse
 from MIA_Evaluate.meminf import *
 from dataloader.dataloader_adult import prepare_dataset_adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
+from dataloader.dataloader_obesity import prepare_dataset_obesity
 from dataloader.dataloader_texas import prepare_dataset_texas
 from models.train_models import *
 from models.define_models import *
@@ -20,11 +21,16 @@ def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_tra
     else:
         attack_trainloader, attack_testloader = get_attack_dataset_without_shadow(target_train, target_test, batch_size)
 
-    # 进行MIA评估
+    # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
         attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader, attack_testloader,
                      target_model, shadow_model, attack_model, 1, num_classes)
+    # 进行MIA评估 黑盒+Partial辅助数据集
+    elif mode == 1:
+        attack_model = PartialAttackModel(num_classes)
+        attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader, target_model,
+                     attack_model, 1, num_classes)
 
 
 def main():
@@ -54,9 +60,11 @@ def main():
 
     # 获得目标数据集、影子数据集、目标模型、影子模型
     if dataset_name == "ADULT":
+        print("ADULT")
         num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_adult()
-    elif dataset_name == "TEXAS":
-        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_texas()
+    elif dataset_name == "Obesity":
+        print("Obesity")
+        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_obesity()
 
     # 训练目标模型
     if args.train_target:
@@ -70,6 +78,7 @@ def main():
     if args.attack_type == 0:
         test_meminf(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                     target_model, shadow_model, mode)
+
 
 
 def fix_seed(num):

@@ -65,9 +65,6 @@ class attack_for_blackbox():
             # targets 来自 dataloader
             # members 来自 get_attack_dataset_with_shadow
             for inputs, targets, members in self.attack_train_loader:
-                print(inputs)
-                print(targets)
-                print(members)
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 output, prediction = self._get_data(self.shadow_model, inputs, targets)
                 # output = output.cpu().detach().numpy()
