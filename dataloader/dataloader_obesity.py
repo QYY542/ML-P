@@ -7,11 +7,9 @@ import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
 from models.define_models import TexasClassifier, FourLayerMultiClassNN
-from ucimlrepo import fetch_ucirepo
 
 import torch
 from torch.utils.data import Dataset
-from ucimlrepo import fetch_ucirepo
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 class Obesity(Dataset):
