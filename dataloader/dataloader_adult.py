@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import Any, Callable, List, Optional, Union, Tuple
 
-from models.define_models import Net
+from models.define_models import  Net_1
 
 
 class Adult(torch.utils.data.Dataset):
@@ -65,7 +65,7 @@ def prepare_dataset_adult():
     num_classes = 2  # 输出类别数
 
     # 初始化模型
-    target_model = Net(num_features)
-    shadow_model = Net(num_features)
+    target_model = Net_1(num_features,num_classes)
+    shadow_model = Net_1(num_features,num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model

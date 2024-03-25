@@ -6,7 +6,7 @@ import tarfile
 import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import TexasClassifier, FourLayerMultiClassNN
+from models.define_models import TexasClassifier, Net_1
 
 import torch
 from torch.utils.data import Dataset
@@ -77,7 +77,7 @@ def prepare_dataset_obesity():
     num_classes = 7  # 输出类别数
 
     # 初始化模型
-    target_model = FourLayerMultiClassNN(num_features,num_classes)
-    shadow_model = FourLayerMultiClassNN(num_features,num_classes)
+    target_model = Net_1(num_features, num_classes)
+    shadow_model = Net_1(num_features, num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model

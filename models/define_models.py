@@ -89,47 +89,10 @@ class PartialAttackModel(nn.Module):
 
         return final_result
 
-# 自定义神经网络模型
-class Net(nn.Module):
-    def __init__(self, num_features):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(num_features, 128)  # 第一层
-        self.fc2 = nn.Linear(128, 64)            # 第二层
-        self.fc3 = nn.Linear(64, 32)             # 第三层
-        self.fc4 = nn.Linear(32, 2)              # 输出层，单个神经元
-
-    def forward(self, x):
-        x = torch.tanh(self.fc1(x))  # 使用Tanh激活函数
-        x = torch.tanh(self.fc2(x))  # 同上
-        x = torch.tanh(self.fc3(x))  # 同上
-        x = self.fc4(x)  # 输出层使用Sigmoid激活函数
-        return x
-
-
-class TexasClassifier(nn.Module):
-	def __init__(self, num_classes=100):
-		super(TexasClassifier, self).__init__()
-
-		self.features = nn.Sequential(
-			nn.Linear(6169, 1024),
-			nn.Tanh(),
-			nn.Linear(1024, 512),
-			nn.Tanh(),
-			nn.Linear(512, 256),
-			nn.Tanh(),
-			nn.Linear(256, 128),
-			nn.Tanh(),
-		)
-		self.classifier = nn.Linear(128, num_classes)
-
-	def forward(self, x):
-		hidden_out = self.features(x)
-		return self.classifier(hidden_out)
-
-
-class FourLayerMultiClassNN(nn.Module):
+# 自定义分类模型-1
+class Net_1(nn.Module):
     def __init__(self, input_size, num_classes):
-        super(FourLayerMultiClassNN, self).__init__()
+        super(Net_1, self).__init__()
         # 定义网络层
         self.fc1 = nn.Linear(input_size, 256)
         self.leaky_relu = nn.LeakyReLU(0.01)

@@ -4,7 +4,6 @@ from MIA_Evaluate.meminf import *
 from dataloader.dataloader_adult import prepare_dataset_adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
 from dataloader.dataloader_obesity import prepare_dataset_obesity
-from dataloader.dataloader_texas import prepare_dataset_texas
 from models.train_models import *
 from models.define_models import *
 from dataloader.dataloader import *
