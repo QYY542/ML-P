@@ -13,9 +13,9 @@ from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 class Obesity(Dataset):
-    def __init__(self) -> None:
+    def __init__(self,root = './dataloader/datasets/obesity/') -> None:
         super().__init__()
-        self.root = './dataloader/datasets/obesity/'
+        self.root = root
         self.filename = 'obesity.csv'
 
         # 加载和预处理数据

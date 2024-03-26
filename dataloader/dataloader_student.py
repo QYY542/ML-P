@@ -6,18 +6,17 @@ import tarfile
 import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import  Net_1
+from models.define_models import Net_1
 
 import torch
 from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
-
 class Student(Dataset):
-    def __init__(self) -> None:
+    def __init__(self, root='./dataloader/datasets/student/') -> None:
         super().__init__()
-        self.root = './dataloader/datasets/student/'
+        self.root = root
         self.filename = 'student.csv'
 
         # 加载和预处理数据

@@ -73,7 +73,6 @@ def prepare_dataset(dataset_name,model_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, default="0")
-    parser.add_argument('--root', type=str, default="../datasets")
     parser.add_argument('--model', type=str, default="resnet18")
     parser.add_argument('--dataset', type=str, default="UTKFace")
     parser.add_argument('--attack_type', type=int, default=0)
@@ -110,6 +109,10 @@ def main():
     if args.attack_type == 0:
         test_meminf(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                     target_model, shadow_model, mode)
+    # # 进行QID脆弱性研究
+    # elif args.attack_type == 1:
+
+
 
 
 
