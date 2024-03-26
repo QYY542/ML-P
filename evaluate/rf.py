@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 from dataloader.dataloader_obesity import Obesity
+from dataloader.dataloader_student import Student
 
 
 class QID_VE:
@@ -57,14 +58,15 @@ class QID_VE:
 
 if __name__ == '__main__':
     # 假设Student或Obesity类已经定义
-    # dataset = Student("../dataloader/datasets/student/")
-    dataset = Obesity("../dataloader/datasets/obesity/")
+    dataset = Student("../dataloader/datasets/student/")
+    # dataset = Obesity("../dataloader/datasets/obesity/")
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
     evaluator.train_model()  # 训练模型
 
     num_features = next(iter(dataset))[0].shape[0]
+    print(next(iter(dataset))[0])
 
     for i in range(num_features):
         impact, std_deviation = evaluator.compute_qid_impact_std_deviation(i)
