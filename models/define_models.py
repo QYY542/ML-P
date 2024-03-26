@@ -92,7 +92,7 @@ class PartialAttackModel(nn.Module):
         return final_result
 
 
-# 自定义分类模型-1
+# 自定义Net_1
 class Net_1(nn.Module):
     def __init__(self, input_size, num_classes):
         super(Net_1, self).__init__()
@@ -123,65 +123,76 @@ class Net_1(nn.Module):
         x = self.fc4(x)
         return x
 
+# 自定义ResNet
+class Bottlrneck(torch.nn.Module):
+    def __init__(self, In_channel, Med_channel, Out_channel, downsample=False):
+        super(Bottlrneck, self).__init__()
+        self.stride = 1
+        if downsample == True:
+            self.stride = 2
 
-class Residual(nn.Module):
-    def __init__(self, input_channels, num_channels,
-                 use_1x1conv=False, strides=1):
-        super().__init__()
-        self.conv1 = nn.Conv1d(input_channels, num_channels,
-                               kernel_size=3, padding=1, stride=strides)
-        self.conv2 = nn.Conv1d(num_channels, num_channels,
-                               kernel_size=3, padding=1)
-        if use_1x1conv:
-            self.conv3 = nn.Conv1d(input_channels, num_channels,
-                                   kernel_size=1, stride=strides)
-        else:
-            self.conv3 = None
-        self.bn1 = nn.BatchNorm1d(num_channels)
-        self.bn2 = nn.BatchNorm1d(num_channels)
-
-    def forward(self, X):
-        Y = F.relu(self.bn1(self.conv1(X)))
-        Y = self.bn2(self.conv2(Y))
-        if self.conv3:
-            X = self.conv3(X)
-        Y += X
-        return F.relu(Y)
-
-
-def resnet_block(input_channels, num_channels, num_residuals,
-                 first_block=False):
-    blk = []
-    for i in range(num_residuals):
-        if i == 0 and not first_block:
-            blk.append(Residual(input_channels, num_channels,
-                                use_1x1conv=True, strides=2))
-        else:
-            blk.append(Residual(num_channels, num_channels))
-    return blk
-
-
-class ResNetModel(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(ResNetModel, self).__init__()
-
-        self.res = nn.Sequential(
-            nn.Sequential(nn.Conv1d(1, 64, kernel_size=7, stride=2, padding=3),
-                          nn.BatchNorm1d(64), nn.ReLU(),
-                          nn.MaxPool1d(kernel_size=3, stride=2, padding=1)),
-            nn.Sequential(*resnet_block(64, 64, 2, first_block=True)),
-            nn.Sequential(*resnet_block(64, 128, 2)),
-            nn.Sequential(*resnet_block(128, 256, 2)),
-            nn.Sequential(*resnet_block(256, 512, 2)),
-            nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(),
-            nn.Linear(512, 512), nn.ReLU(),
-            nn.Linear(512, 64), nn.ReLU(),
-            nn.Linear(64, num_classes)
+        self.layer = torch.nn.Sequential(
+            torch.nn.Conv1d(In_channel, Med_channel, 1, self.stride),
+            torch.nn.BatchNorm1d(Med_channel),
+            torch.nn.ReLU(),
+            torch.nn.Conv1d(Med_channel, Med_channel, 3, padding=1),
+            torch.nn.BatchNorm1d(Med_channel),
+            torch.nn.ReLU(),
+            torch.nn.Conv1d(Med_channel, Out_channel, 1),
+            torch.nn.BatchNorm1d(Out_channel),
+            torch.nn.ReLU(),
         )
-        # 定义全连接层，将 Transformer 编码器的输出映射到分类空间
-        # self.fc = nn.Linear(input_size, num_classes)
+
+        if In_channel != Out_channel:
+            self.res_layer = torch.nn.Conv1d(In_channel, Out_channel, 1, self.stride)
+        else:
+            self.res_layer = None
 
     def forward(self, x):
-        x = self.res(x)
+        if self.res_layer is not None:
+            residual = self.res_layer(x)
+        else:
+            residual = x
+        return self.layer(x) + residual
+
+
+class ResNet(torch.nn.Module):
+    def __init__(self, in_channels=2, classes=6):
+        super(ResNet, self).__init__()
+        self.features = torch.nn.Sequential(
+            torch.nn.Conv1d(in_channels, 64, kernel_size=7, stride=2, padding=3),
+            torch.nn.MaxPool1d(3, 2, 1),
+
+            Bottlrneck(64, 64, 256, False),
+            Bottlrneck(256, 64, 256, False),
+            Bottlrneck(256, 64, 256, False),
+            #
+            Bottlrneck(256, 128, 512, True),
+            Bottlrneck(512, 128, 512, False),
+            Bottlrneck(512, 128, 512, False),
+            Bottlrneck(512, 128, 512, False),
+            #
+            Bottlrneck(512, 256, 1024, True),
+            Bottlrneck(1024, 256, 1024, False),
+            Bottlrneck(1024, 256, 1024, False),
+            Bottlrneck(1024, 256, 1024, False),
+            Bottlrneck(1024, 256, 1024, False),
+            Bottlrneck(1024, 256, 1024, False),
+            #
+            Bottlrneck(1024, 512, 2048, True),
+            Bottlrneck(2048, 512, 2048, False),
+            Bottlrneck(2048, 512, 2048, False),
+
+            torch.nn.AdaptiveAvgPool1d(1)
+        )
+        self.classifer = torch.nn.Sequential(
+            torch.nn.Linear(2048, classes)
+        )
+
+    def forward(self, x):
+        x = torch.Tensor.view(x, (-1, 2, 511))
+        x = self.features(x)
+        x = x.view(-1, 2048)
+        x = self.classifer(x)
         return x
+
