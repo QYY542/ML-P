@@ -180,7 +180,7 @@ class ResNetModel(nn.Module):
             nn.Linear(64, num_classes)
         )
         # 定义全连接层，将 Transformer 编码器的输出映射到分类空间
-        self.fc = nn.Linear(input_size, num_classes)
+        # self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
         x = self.res(x)
