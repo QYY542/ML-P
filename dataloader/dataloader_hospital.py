@@ -60,24 +60,3 @@ class Hospital(Dataset):
             target = tuple(target) if len(target) > 1 else target[0]
 
         return X, target
-
-def prepare_dataset_hospital():
-    # 创建Adult数据集实例
-    dataset = Hospital()
-
-    # 划分目标和影子数据集
-    length = len(dataset)
-    each_length = length // 4
-    target_train, target_test, shadow_train, shadow_test, _ = torch.utils.data.random_split(
-        dataset, [each_length, each_length, each_length, each_length, length - (each_length * 4)]
-    )
-
-    num_features = next(iter(dataset))[0].shape[0]
-    print(num_features)
-    num_classes = 3  # 输出类别数
-
-    # 初始化模型
-    target_model = Net_1(num_features,num_classes)
-    shadow_model = Net_1(num_features,num_classes)
-
-    return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model

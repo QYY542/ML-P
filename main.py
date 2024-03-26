@@ -1,11 +1,11 @@
 import argparse
 
-from MIA_Evaluate.meminf import *
-from dataloader.dataloader_adult import prepare_dataset_adult
+from evaluate.mia_evaluate import *
+from dataloader.dataloader_adult import  Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
-from dataloader.dataloader_hospital import prepare_dataset_hospital
-from dataloader.dataloader_obesity import prepare_dataset_obesity
-from dataloader.dataloader_student import prepare_dataset_student
+from dataloader.dataloader_hospital import  Hospital
+from dataloader.dataloader_obesity import  Obesity
+from dataloader.dataloader_student import  Student
 from models.train_models import *
 from models.define_models import *
 from dataloader.dataloader import *
@@ -34,6 +34,42 @@ def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_tra
                      attack_model, 1, num_classes)
 
 
+def prepare_dataset(dataset_name,model_name):
+    # 数据集
+    if dataset_name == "ADULT":
+        print("ADULT")
+        dataset = Adult()
+        num_classes = 2
+    elif dataset_name == "Obesity":
+        print("Obesity")
+        dataset = Obesity()
+        num_classes = 7
+    elif dataset_name == "Student":
+        print("Student")
+        dataset = Student()
+        num_classes = 3
+    elif dataset_name == "Hospital":
+        print("Hospital")
+        dataset = Hospital()
+        num_classes = 3
+
+    # 划分目标和影子数据集
+    length = len(dataset)
+    each_length = length // 4
+    target_train, target_test, shadow_train, shadow_test, _ = torch.utils.data.random_split(
+        dataset, [each_length, each_length, each_length, each_length, length - (each_length * 4)]
+    )
+    num_features = next(iter(dataset))[0].shape[0]
+
+    # 模型
+    if model_name == "Net_1":
+        target_model = Net_1(num_features, num_classes)
+        shadow_model = Net_1(num_features, num_classes)
+
+    return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
+
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, default="0")
@@ -60,18 +96,7 @@ def main():
     TARGET_PATH = TARGET_ROOT + dataset_name
 
     # 获得目标数据集、影子数据集、目标模型、影子模型
-    if dataset_name == "ADULT":
-        print("ADULT")
-        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_adult()
-    elif dataset_name == "Obesity":
-        print("Obesity")
-        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_obesity()
-    elif dataset_name == "Student":
-        print("Student")
-        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_student()
-    elif dataset_name == "Hospital":
-        print("Hospital")
-        num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset_hospital()
+    num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(dataset_name, model_name)
 
     # 训练目标模型
     if args.train_target:
