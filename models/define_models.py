@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ShadowAttackModel(nn.Module):
     def __init__(self, class_num):
         super(ShadowAttackModel, self).__init__()
@@ -38,11 +39,12 @@ class ShadowAttackModel(nn.Module):
     def forward(self, output, prediction):
         Output_Component_result = self.Output_Component(output)
         Prediction_Component_result = self.Prediction_Component(prediction)
-        
+
         final_inputs = torch.cat((Output_Component_result, Prediction_Component_result), dim=1)
         final_result = self.Encoder_Component(final_inputs)
 
         return final_result
+
 
 class PartialAttackModel(nn.Module):
     def __init__(self, class_num):
@@ -82,12 +84,13 @@ class PartialAttackModel(nn.Module):
         # 处理输出和预测的组件
         Output_Component_result = self.Output_Component(output)
         Prediction_Component_result = self.Prediction_Component(prediction)
-        
+
         # 将输出和预测的结果连接起来作为Encoder组件的输入
         final_inputs = torch.cat((Output_Component_result, Prediction_Component_result), dim=1)
         final_result = self.Encoder_Component(final_inputs)
 
         return final_result
+
 
 # 自定义分类模型-1
 class Net_1(nn.Module):
@@ -122,20 +125,20 @@ class Net_1(nn.Module):
 
 
 class Residual(nn.Module):
-    def __init__(self, input_size, num_classes,
+    def __init__(self, input_channels, num_channels,
                  use_1x1conv=False, strides=1):
         super().__init__()
-        self.conv1 = nn.Conv1d(input_size, num_classes,
+        self.conv1 = nn.Conv1d(input_channels, num_channels,
                                kernel_size=3, padding=1, stride=strides)
-        self.conv2 = nn.Conv1d(num_classes, num_classes,
+        self.conv2 = nn.Conv1d(num_channels, num_channels,
                                kernel_size=3, padding=1)
         if use_1x1conv:
-            self.conv3 = nn.Conv1d(input_size, num_classes,
+            self.conv3 = nn.Conv1d(input_channels, num_channels,
                                    kernel_size=1, stride=strides)
         else:
             self.conv3 = None
-        self.bn1 = nn.BatchNorm1d(num_classes)
-        self.bn2 = nn.BatchNorm1d(num_classes)
+        self.bn1 = nn.BatchNorm1d(num_channels)
+        self.bn2 = nn.BatchNorm1d(num_channels)
 
     def forward(self, X):
         Y = F.relu(self.bn1(self.conv1(X)))
@@ -144,3 +147,41 @@ class Residual(nn.Module):
             X = self.conv3(X)
         Y += X
         return F.relu(Y)
+
+
+def resnet_block(input_channels, num_channels, num_residuals,
+                 first_block=False):
+    blk = []
+    for i in range(num_residuals):
+        if i == 0 and not first_block:
+            blk.append(Residual(input_channels, num_channels,
+                                use_1x1conv=True, strides=2))
+        else:
+            blk.append(Residual(num_channels, num_channels))
+    return blk
+
+
+class ResNetModel(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(ResNetModel, self).__init__()
+
+        self.res = nn.Sequential(
+            nn.Sequential(nn.Conv1d(1, 64, kernel_size=7, stride=2, padding=3),
+                          nn.BatchNorm1d(64), nn.ReLU(),
+                          nn.MaxPool1d(kernel_size=3, stride=2, padding=1)),
+            nn.Sequential(*resnet_block(64, 64, 2, first_block=True)),
+            nn.Sequential(*resnet_block(64, 128, 2)),
+            nn.Sequential(*resnet_block(128, 256, 2)),
+            nn.Sequential(*resnet_block(256, 512, 2)),
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(),
+            nn.Linear(512, 512), nn.ReLU(),
+            nn.Linear(512, 64), nn.ReLU(),
+            nn.Linear(64, num_classes)
+        )
+        # 定义全连接层，将 Transformer 编码器的输出映射到分类空间
+        self.fc = nn.Linear(input_size, num_classes)
+
+    def forward(self, x):
+        x = self.res(x)
+        return x
