@@ -65,6 +65,9 @@ def prepare_dataset(dataset_name,model_name):
     if model_name == "Net_1":
         target_model = Net_1(num_features, num_classes)
         shadow_model = Net_1(num_features, num_classes)
+    elif model_name == "Res1D":
+        target_model = Residual(num_features, num_classes)
+        shadow_model = Residual(num_features, num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
 

@@ -119,3 +119,28 @@ class Net_1(nn.Module):
         x = self.dropout3(x)
         x = self.fc4(x)
         return x
+
+
+class Residual(nn.Module):
+    def __init__(self, input_size, num_classes,
+                 use_1x1conv=False, strides=1):
+        super().__init__()
+        self.conv1 = nn.Conv1d(input_size, num_classes,
+                               kernel_size=3, padding=1, stride=strides)
+        self.conv2 = nn.Conv1d(num_classes, num_classes,
+                               kernel_size=3, padding=1)
+        if use_1x1conv:
+            self.conv3 = nn.Conv1d(input_size, num_classes,
+                                   kernel_size=1, stride=strides)
+        else:
+            self.conv3 = None
+        self.bn1 = nn.BatchNorm1d(num_classes)
+        self.bn2 = nn.BatchNorm1d(num_classes)
+
+    def forward(self, X):
+        Y = F.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        if self.conv3:
+            X = self.conv3(X)
+        Y += X
+        return F.relu(Y)
