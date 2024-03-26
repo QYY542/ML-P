@@ -37,9 +37,11 @@ class Obesity(Dataset):
         df = df.drop('NObeyesdad', axis=1)
 
         # 对数值特征进行标准化
+        numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
+
         # numeric_features = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
-        # scaler = StandardScaler()
-        # df[numeric_features] = scaler.fit_transform(df[numeric_features])
+        scaler = StandardScaler()
+        df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
         # 标签进行标签编码
         self.target_encoder = LabelEncoder()
