@@ -1,5 +1,6 @@
 import argparse
 
+from evaluate.kmeans_evaluate import KmeansEvaluate
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
@@ -116,7 +117,8 @@ def main():
         test_meminf(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                     target_model, shadow_model, mode)
     # # 进行QID脆弱性研究
-    # elif args.attack_type == 1:
+    elif args.attack_type == 1:
+        KmeansEvaluate("min")
 
 
 def fix_seed(num):

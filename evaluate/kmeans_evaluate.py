@@ -61,8 +61,8 @@ class KmeansDataset:
         return min_dataset, max_dataset, random_dataset
 
 
-if __name__ == '__main__':
-    selected_dataset_name = "min"
+def KmeansEvaluate(name):
+    selected_dataset_name = name
 
     # 假设您已经正确加载了数据集
     dataset = Obesity("../dataloader/datasets/obesity/")  # 使用您的实际数据集
