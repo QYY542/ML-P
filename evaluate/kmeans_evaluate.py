@@ -4,11 +4,6 @@ from sklearn.preprocessing import StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 
-from dataloader.dataloader_obesity import Obesity
-from main import test_meminf
-from models.define_models import Net_1
-from models.train_models import train_target_model, train_shadow_model
-
 
 class KmeansDataset:
     def __init__(self, dataset):
@@ -59,46 +54,3 @@ class KmeansDataset:
         random_dataset = Subset(self.dataset, random_indices)
 
         return min_dataset, max_dataset, random_dataset
-
-
-def KmeansEvaluate(name, mode):
-    selected_dataset_name = name
-
-    # 假设您已经正确加载了数据集
-    dataset = Obesity("../dataloader/datasets/obesity/")  # 使用您的实际数据集
-    num_classes = 7
-    TARGET_PATH = "../dataloader/trained_model/" + "obesity" + selected_dataset_name + "Net_1"
-    device = torch.device("cuda")
-
-    # 取前三分之一样本的数据
-    length = len(dataset)
-    n = length // 3
-
-    # 获取三类数据集 min max random
-    evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset = evaluator.get_specific_datasets_and_distances(n)
-
-    if selected_dataset_name == "min":
-        selected_dataset = min_dataset
-    elif selected_dataset_name == "max":
-        selected_dataset = max_dataset
-    elif selected_dataset_name == "random":
-        selected_dataset = random_dataset
-
-    # 对min数据集进行分析
-    selected_length = len(selected_dataset)
-    each_selected_length = selected_length // 4
-    num_features = next(iter(selected_dataset))[0].shape[0]
-    min_target_train, min_target_test, min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        selected_dataset, [each_selected_length, each_selected_length, each_selected_length, each_selected_length,
-                           selected_length - (each_selected_length * 4)]
-    )
-
-    # 获取模型并且评估
-    target_model = Net_1(num_features, num_classes)
-    shadow_model = Net_1(num_features, num_classes)
-
-    train_target_model(TARGET_PATH, device, min_target_train, min_target_test, target_model)
-    train_shadow_model(TARGET_PATH, device, min_shadow_train, min_shadow_test, shadow_model)
-    test_meminf(TARGET_PATH, device, num_classes, min_target_train, min_target_test, min_shadow_train, min_shadow_test,
-                target_model, shadow_model, mode, kmeans=selected_dataset_name)
