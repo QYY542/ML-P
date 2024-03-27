@@ -218,8 +218,6 @@ class attack_for_blackbox():
 
 
 
-
-
 # black shadow
 def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model,
                  shadow_model, attack_model, get_attack_set, num_classes):

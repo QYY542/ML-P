@@ -12,12 +12,21 @@ from models.define_models import *
 from dataloader.dataloader import *
 
 
-def test_kmeans(name, mode):
-    selected_dataset_name = name
-
+def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     # 假设您已经正确加载了数据集
-    dataset = Obesity("./dataloader/datasets/obesity/")  # 使用您的实际数据集
-    num_classes = 7
+    if dataset_name == 'Obesity':
+        print('Obesity_kmeans')
+        dataset = Obesity()
+        num_classes = 7
+    elif dataset_name == 'Student':
+        print('Student_kmeans')
+        dataset = Student()
+        num_classes = 3
+    elif dataset_name == 'Hospital':
+        print('Hospital_kmeans')
+        dataset = Hospital()
+        num_classes = 3
+
     TARGET_PATH = "./dataloader/trained_model/" + "obesity" + selected_dataset_name + "Net_1"
     device = torch.device("cuda")
 
@@ -36,7 +45,7 @@ def test_kmeans(name, mode):
     elif selected_dataset_name == "random":
         selected_dataset = random_dataset
 
-    # 对min数据集进行分析
+    # 对selected_dataset数据集进行分析
     selected_length = len(selected_dataset)
     each_selected_length = selected_length // 4
     num_features = next(iter(selected_dataset))[0].shape[0]
@@ -46,8 +55,14 @@ def test_kmeans(name, mode):
     )
 
     # 获取模型并且评估
-    target_model = Net_1(num_features, num_classes)
-    shadow_model = Net_1(num_features, num_classes)
+    if model_name == "Net_1":
+        print("Net_1")
+        target_model = Net_1(num_features, num_classes)
+        shadow_model = Net_1(num_features, num_classes)
+    elif model_name == "MLP":
+        print("MLP")
+        target_model = MLP(num_features, num_classes)
+        shadow_model = MLP(num_features, num_classes)
 
     train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
     train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
@@ -112,8 +127,8 @@ def prepare_dataset(dataset_name, model_name):
         print("Net_1")
         target_model = Net_1(num_features, num_classes)
         shadow_model = Net_1(num_features, num_classes)
-    elif model_name == "Res1D":
-        print("Res1D")
+    elif model_name == "MLP":
+        print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
 
@@ -129,6 +144,7 @@ def main():
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
+    parser.add_argument('--kmeans', type=str, default="min")
 
     args = parser.parse_args()
 
@@ -138,6 +154,7 @@ def main():
     dataset_name = args.dataset
     model_name = args.model
     mode = args.mode
+    kmeans = args.kmeans
     TARGET_ROOT = "./dataloader/trained_model/"
     if not os.path.exists(TARGET_ROOT):
         print(f"Create directory named {TARGET_ROOT}")
@@ -162,7 +179,7 @@ def main():
                     target_model, shadow_model, mode)
     # # 进行QID脆弱性研究
     elif args.attack_type == 1:
-        test_kmeans("max", mode)
+        test_kmeans(dataset_name, model_name, kmeans, mode)
 
 
 def fix_seed(num):
