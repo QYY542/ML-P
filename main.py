@@ -32,7 +32,8 @@ def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_tra
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans + "_target.pth", PATH + kmeans, device, attack_trainloader, attack_testloader, target_model,
+        attack_mode1(PATH + kmeans + "_target.pth", PATH + kmeans, device, attack_trainloader, attack_testloader,
+                     target_model,
                      attack_model, 1, num_classes)
 
 
@@ -118,7 +119,7 @@ def main():
                     target_model, shadow_model, mode)
     # # 进行QID脆弱性研究
     elif args.attack_type == 1:
-        KmeansEvaluate("min")
+        KmeansEvaluate("min", mode)
 
 
 def fix_seed(num):

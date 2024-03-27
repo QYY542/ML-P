@@ -61,7 +61,7 @@ class KmeansDataset:
         return min_dataset, max_dataset, random_dataset
 
 
-def KmeansEvaluate(name):
+def KmeansEvaluate(name, mode):
     selected_dataset_name = name
 
     # 假设您已经正确加载了数据集
@@ -101,4 +101,4 @@ def KmeansEvaluate(name):
     train_target_model(TARGET_PATH, device, min_target_train, min_target_test, target_model)
     train_shadow_model(TARGET_PATH, device, min_shadow_train, min_shadow_test, shadow_model)
     test_meminf(TARGET_PATH, device, num_classes, min_target_train, min_target_test, min_shadow_train, min_shadow_test,
-                target_model, shadow_model, mode=0, kmeans=selected_dataset_name)
+                target_model, shadow_model, mode, kmeans=selected_dataset_name)
