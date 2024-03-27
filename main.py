@@ -49,8 +49,8 @@ def test_kmeans(name, mode):
     target_model = Net_1(num_features, num_classes)
     shadow_model = Net_1(num_features, num_classes)
 
-    train_target_model(TARGET_PATH, device, min_target_train, min_target_test, target_model)
-    train_shadow_model(TARGET_PATH, device, min_shadow_train, min_shadow_test, shadow_model)
+    train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
+    train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
     test_meminf(TARGET_PATH, device, num_classes, min_target_train, min_target_test, min_shadow_train, min_shadow_test,
                 target_model, shadow_model, mode, kmeans=selected_dataset_name)
 
