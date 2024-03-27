@@ -1,18 +1,18 @@
 import argparse
 
 from evaluate.mia_evaluate import *
-from dataloader.dataloader_adult import  Adult
+from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
-from dataloader.dataloader_hospital import  Hospital
-from dataloader.dataloader_obesity import  Obesity
-from dataloader.dataloader_student import  Student
+from dataloader.dataloader_hospital import Hospital
+from dataloader.dataloader_obesity import Obesity
+from dataloader.dataloader_student import Student
 from models.train_models import *
 from models.define_models import *
 from dataloader.dataloader import *
 
 
 def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-                shadow_model, mode):
+                shadow_model, mode, kmeans=""):
     batch_size = 64
 
     # 获取攻击数据集
@@ -25,16 +25,17 @@ def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_tra
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader, attack_testloader,
+        attack_mode0(PATH + kmeans + "_target.pth", PATH + kmeans + "_shadow.pth", PATH, device, attack_trainloader,
+                     attack_testloader,
                      target_model, shadow_model, attack_model, 1, num_classes)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader, target_model,
+        attack_mode1(PATH + kmeans + "_target.pth", PATH + kmeans, device, attack_trainloader, attack_testloader, target_model,
                      attack_model, 1, num_classes)
 
 
-def prepare_dataset(dataset_name,model_name):
+def prepare_dataset(dataset_name, model_name):
     # 数据集
     if dataset_name == "ADULT":
         print("ADULT")
@@ -63,14 +64,15 @@ def prepare_dataset(dataset_name,model_name):
 
     # 模型
     if model_name == "Net_1":
+        print("Net_1")
         target_model = Net_1(num_features, num_classes)
         shadow_model = Net_1(num_features, num_classes)
     elif model_name == "Res1D":
-        target_model = ResNet(num_features, num_classes)
-        shadow_model = ResNet(num_features, num_classes)
+        print("Res1D")
+        target_model = MLP(num_features, num_classes)
+        shadow_model = MLP(num_features, num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
-
 
 
 def main():
@@ -95,10 +97,11 @@ def main():
     if not os.path.exists(TARGET_ROOT):
         print(f"Create directory named {TARGET_ROOT}")
         os.makedirs(TARGET_ROOT)
-    TARGET_PATH = TARGET_ROOT + dataset_name
+    TARGET_PATH = TARGET_ROOT + dataset_name + model_name
 
     # 获得目标数据集、影子数据集、目标模型、影子模型
-    num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(dataset_name, model_name)
+    num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(
+        dataset_name, model_name)
 
     # 训练目标模型
     if args.train_target:
@@ -114,9 +117,6 @@ def main():
                     target_model, shadow_model, mode)
     # # 进行QID脆弱性研究
     # elif args.attack_type == 1:
-
-
-
 
 
 def fix_seed(num):

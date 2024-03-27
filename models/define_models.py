@@ -124,75 +124,98 @@ class Net_1(nn.Module):
         return x
 
 # 自定义ResNet
-class Bottlrneck(torch.nn.Module):
-    def __init__(self, In_channel, Med_channel, Out_channel, downsample=False):
-        super(Bottlrneck, self).__init__()
-        self.stride = 1
-        if downsample == True:
-            self.stride = 2
+class BasicBlock(nn.Module):
+    expansion = 1
 
-        self.layer = torch.nn.Sequential(
-            torch.nn.Conv1d(In_channel, Med_channel, 1, self.stride),
-            torch.nn.BatchNorm1d(Med_channel),
-            torch.nn.ReLU(),
-            torch.nn.Conv1d(Med_channel, Med_channel, 3, padding=1),
-            torch.nn.BatchNorm1d(Med_channel),
-            torch.nn.ReLU(),
-            torch.nn.Conv1d(Med_channel, Out_channel, 1),
-            torch.nn.BatchNorm1d(Out_channel),
-            torch.nn.ReLU(),
-        )
+    def __init__(self, in_planes, planes, stride=1):
+        super(BasicBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes * self.expansion, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes * self.expansion)
 
-        if In_channel != Out_channel:
-            self.res_layer = torch.nn.Conv1d(In_channel, Out_channel, 1, self.stride)
-        else:
-            self.res_layer = None
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != planes * self.expansion:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, planes * self.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * self.expansion)
+            )
 
     def forward(self, x):
-        if self.res_layer is not None:
-            residual = self.res_layer(x)
-        else:
-            residual = x
-        return self.layer(x) + residual
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)
+        out = F.relu(out)
+        return out
 
-
-class ResNet(torch.nn.Module):
-    def __init__(self, in_channels=2, classes=6):
+class ResNet(nn.Module):
+    def __init__(self, num_features, num_classes):
         super(ResNet, self).__init__()
-        self.features = torch.nn.Sequential(
-            torch.nn.Conv1d(in_channels, 64, kernel_size=7, stride=2, padding=3),
-            torch.nn.MaxPool1d(3, 2, 1),
+        self.in_planes = 64
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.layer1 = self._make_layer(BasicBlock, 64, 2, stride=1)
+        self.linear = nn.Linear(64 * BasicBlock.expansion, num_classes)
 
-            Bottlrneck(64, 64, 256, False),
-            Bottlrneck(256, 64, 256, False),
-            Bottlrneck(256, 64, 256, False),
-            #
-            Bottlrneck(256, 128, 512, True),
-            Bottlrneck(512, 128, 512, False),
-            Bottlrneck(512, 128, 512, False),
-            Bottlrneck(512, 128, 512, False),
-            #
-            Bottlrneck(512, 256, 1024, True),
-            Bottlrneck(1024, 256, 1024, False),
-            Bottlrneck(1024, 256, 1024, False),
-            Bottlrneck(1024, 256, 1024, False),
-            Bottlrneck(1024, 256, 1024, False),
-            Bottlrneck(1024, 256, 1024, False),
-            #
-            Bottlrneck(1024, 512, 2048, True),
-            Bottlrneck(2048, 512, 2048, False),
-            Bottlrneck(2048, 512, 2048, False),
+        # Adapting the first layer to match num_features
+        self.adapt_first_layer = nn.Sequential(
+            nn.Linear(num_features, 64),
+            nn.Unflatten(1, (1, 8, 8))  # Example reshape, adjust based on your input reshaping strategy
+        )
 
-            torch.nn.AdaptiveAvgPool1d(1)
-        )
-        self.classifer = torch.nn.Sequential(
-            torch.nn.Linear(2048, classes)
-        )
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1]*(num_blocks-1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+        return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = torch.Tensor.view(x, (-1, 2, 511))
-        x = self.features(x)
-        x = x.view(-1, 2048)
-        x = self.classifer(x)
+        out = self.adapt_first_layer(x)  # Adapt the input
+        out = F.relu(self.bn1(self.conv1(out)))
+        out = self.layer1(out)
+        out = F.avg_pool2d(out, out.size()[3])
+        out = torch.flatten(out, 1)
+        out = self.linear(out)
+        return out
+
+# 前馈神经网络
+class MLP(nn.Module):
+    def __init__(self, input_size, output_size, hidden_sizes=[128, 64], dropout_rate=0.5):
+        super(MLP, self).__init__()
+
+        # 初始化模块列表
+        self.layers = nn.ModuleList()
+
+        # 添加第一层
+        self.layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        self.layers.append(nn.ReLU())
+        self.layers.append(nn.BatchNorm1d(hidden_sizes[0]))
+        self.layers.append(nn.Dropout(dropout_rate))
+
+        # 根据hidden_sizes添加更多层
+        for i in range(1, len(hidden_sizes)):
+            self.layers.append(nn.Linear(hidden_sizes[i - 1], hidden_sizes[i]))
+            self.layers.append(nn.ReLU())
+            self.layers.append(nn.BatchNorm1d(hidden_sizes[i]))
+            self.layers.append(nn.Dropout(dropout_rate))
+
+        # 输出层
+        self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
+
+        # 权重初始化
+        self.apply(self.init_weights)
+
+    def forward(self, inputs):
+        x = inputs
+        for layer in self.layers:
+            x = layer(x)
         return x
 
+    @staticmethod
+    def init_weights(m):
+        if isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
