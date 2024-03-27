@@ -162,7 +162,7 @@ def main():
                     target_model, shadow_model, mode)
     # # 进行QID脆弱性研究
     elif args.attack_type == 1:
-        test_kmeans("min", mode)
+        test_kmeans("max", mode)
 
 
 def fix_seed(num):
