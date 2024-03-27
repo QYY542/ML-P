@@ -9,7 +9,7 @@ class KmeansDataset:
     def __init__(self, dataset):
         self.dataset = dataset
 
-    def compute_kmeans_distance(self, n_clusters=3):
+    def compute_kmeans_distance(self, n_clusters=8):
         # 加载所有数据
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
 
