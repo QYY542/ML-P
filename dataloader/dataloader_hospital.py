@@ -6,12 +6,11 @@ import tarfile
 import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import  Net_1
+from models.define_models import Net_1
 
 import torch
 from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-
 
 
 class Hospital(Dataset):
@@ -36,7 +35,7 @@ class Hospital(Dataset):
         # 除了目标标签 'readmitted' 和已处理的分类列外，其余列都是数值型，可以直接标准化
         numeric_columns = df.columns.drop(categorical_columns + ['readmitted'])
         df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
-        df[numeric_columns] = df[numeric_columns].fillna(0)  # 可以选择其他填充缺失值的方法
+        df[numeric_columns] = df[numeric_columns].fillna(0)
 
         # 对数值特征进行标准化
         scaler = StandardScaler()
@@ -49,6 +48,7 @@ class Hospital(Dataset):
         # 加载数据
         self.X = torch.tensor(X, dtype=torch.float)
         self.target = torch.tensor(target, dtype=torch.long)
+
     def __len__(self) -> int:
         return len(self.X)
 

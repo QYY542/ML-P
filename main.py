@@ -66,12 +66,13 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
     train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
-    test_meminf(TARGET_PATH, device, num_classes, min_target_train, min_target_test, min_shadow_train, min_shadow_test,
-                target_model, shadow_model, mode, kmeans=selected_dataset_name)
+    test_meminf(TARGET_PATH + selected_dataset_name, device, num_classes, min_target_train, min_target_test,
+                min_shadow_train, min_shadow_test,
+                target_model, shadow_model, mode)
 
 
 def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-                shadow_model, mode, kmeans=""):
+                shadow_model, mode):
     batch_size = 64
 
     # 获取攻击数据集
@@ -84,13 +85,13 @@ def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_tra
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + kmeans + "_target.pth", PATH + kmeans + "_shadow.pth", PATH, device, attack_trainloader,
+        attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, num_classes)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans + "_target.pth", PATH + kmeans, device, attack_trainloader, attack_testloader,
+        attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader,
                      target_model,
                      attack_model, 1, num_classes)
 
