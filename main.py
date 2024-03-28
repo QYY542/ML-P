@@ -85,7 +85,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     # 取前三分之一样本的数据
     length = len(dataset)
-    n = 600
+    n = 800
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
@@ -112,7 +112,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     )
 
     min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        random_dataset_shadow_min, [each_selected_length, each_selected_length,
+        random_dataset_shadow_random, [each_selected_length, each_selected_length,
                                   selected_length - (each_selected_length * 2)]
     )
 
