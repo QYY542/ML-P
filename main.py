@@ -7,10 +7,37 @@ from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_att
 from dataloader.dataloader_hospital import Hospital
 from dataloader.dataloader_obesity import Obesity
 from dataloader.dataloader_student import Student
+from evaluate.qid_evaluate import QID_VE
 from models.train_models import *
 from models.define_models import *
 from dataloader.dataloader import *
 
+
+def test_QID(dataset_name):
+    if dataset_name == 'Student':
+        dataset = Student()
+
+    elif dataset_name == 'Obesity':
+        dataset = Obesity()
+        # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
+        qid_indices = [0, 1, 2, 3]
+
+    evaluator = QID_VE(dataset)
+    evaluator.train_test_split()
+
+    impacts = []
+    for i in qid_indices:
+        impact = evaluator.compute_qid_impacts(i)
+        print(f"Impact for QID at index {i}: {impact}")
+        impacts.append(impact)
+
+    # 将impact结果处理为和为一
+    total_impact = sum(impacts)
+    normalized_impacts = [impact / total_impact for impact in impacts]
+
+    # 输出标准化后的impact值
+    for index, normalized_impact in zip(qid_indices, normalized_impacts):
+        print(f"Normalized Impact for QID at index {index}: {normalized_impact}")
 
 def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     # 假设您已经正确加载了数据集
@@ -66,13 +93,13 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
     train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
-    test_meminf(TARGET_PATH + selected_dataset_name, device, num_classes, min_target_train, min_target_test,
-                min_shadow_train, min_shadow_test,
-                target_model, shadow_model, mode)
+    test_mia(TARGET_PATH + selected_dataset_name, device, num_classes, min_target_train, min_target_test,
+             min_shadow_train, min_shadow_test,
+             target_model, shadow_model, mode)
 
 
-def test_meminf(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-                shadow_model, mode):
+def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
+             shadow_model, mode):
     batch_size = 64
 
     # 获取攻击数据集
@@ -139,9 +166,9 @@ def prepare_dataset(dataset_name, model_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, default="0")
-    parser.add_argument('--model', type=str, default="resnet18")
-    parser.add_argument('--dataset', type=str, default="UTKFace")
-    parser.add_argument('--attack_type', type=int, default=0)
+    parser.add_argument('--model', type=str, default="Net_1")
+    parser.add_argument('--dataset', type=str, default="Student")
+    parser.add_argument('--evaluate_type', type=int, default=0)
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
@@ -174,13 +201,17 @@ def main():
     if args.train_shadow:
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model)
 
+    # ----- 进行隐私风险评估 ----- #
     # 进行MIA评估
-    if args.attack_type == 0:
-        test_meminf(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
-                    target_model, shadow_model, mode)
-    # # 进行QID脆弱性研究
-    elif args.attack_type == 1:
+    if args.evaluate_type == 0:
+        test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
+                 target_model, shadow_model, mode)
+    # 进行kmeans聚类研究
+    elif args.evaluate_type == 1:
         test_kmeans(dataset_name, model_name, kmeans, mode)
+    # 进行QID脆弱性研究
+    elif args.evaluate_type == 2:
+        test_QID(dataset_name)
 
 
 def fix_seed(num):
