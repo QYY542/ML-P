@@ -90,6 +90,10 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
+    elif model_name == "CNN":
+        print("CNN")
+        target_model = CNN(num_features, num_classes)
+        shadow_model = CNN(num_features, num_classes)
 
     train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
     train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
@@ -159,6 +163,10 @@ def prepare_dataset(dataset_name, model_name):
         print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
+    elif model_name == "CNN":
+        print("CNN")
+        target_model = CNN(num_features, num_classes)
+        shadow_model = CNN(num_features, num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
 

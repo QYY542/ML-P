@@ -123,6 +123,7 @@ class Net_1(nn.Module):
         x = self.fc4(x)
         return x
 
+
 # 自定义ResNet
 class BasicBlock(nn.Module):
     expansion = 1
@@ -148,6 +149,7 @@ class BasicBlock(nn.Module):
         out = F.relu(out)
         return out
 
+
 class ResNet(nn.Module):
     def __init__(self, num_features, num_classes):
         super(ResNet, self).__init__()
@@ -164,7 +166,7 @@ class ResNet(nn.Module):
         )
 
     def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1]*(num_blocks-1)
+        strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))
@@ -179,6 +181,7 @@ class ResNet(nn.Module):
         out = torch.flatten(out, 1)
         out = self.linear(out)
         return out
+
 
 # 前馈神经网络
 class MLP(nn.Module):
@@ -219,3 +222,37 @@ class MLP(nn.Module):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
+
+
+# CNN网络
+class CNN(nn.Module):
+    def __init__(self, num_features, num_classes):
+        super(CNN, self).__init__()
+        self.num_features_sqrt = int(num_features ** 0.5)
+
+        # 假设num_features可以开方，以便能将一维数据重塑成二维形式
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pool = nn.MaxPool2d(2)
+
+        # 通过池化层后的大小计算
+        size_after_conv = self.num_features_sqrt // 2 // 2  # 两次池化
+        self.fc_input_size = size_after_conv * size_after_conv * 64
+
+        self.fc1 = nn.Linear(self.fc_input_size, 256)
+        self.dropout = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(256, num_classes)
+
+    def forward(self, x):
+        x = x.view(-1, 1, self.num_features_sqrt, self.num_features_sqrt)  # 调整形状以匹配卷积层
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.pool(x)
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.pool(x)
+        x = x.view(-1, self.fc_input_size)  # 展平
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
