@@ -102,13 +102,11 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     each_selected_length = selected_length // 2
     num_features = next(iter(selected_dataset))[0].shape[0]
 
-    min_target_train = selected_dataset
-    min_target_test = random_dataset_shadow
+    selected_target_train = selected_dataset
+    selected_target_test = random_dataset_shadow
 
-    min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        random_dataset_shadow, [each_selected_length, each_selected_length,
-                                selected_length - (each_selected_length * 2)]
-    )
+    selected_shadow_train = random_dataset_shadow
+    selected_shadow_test = random_dataset
 
     # 获取模型并且评估
     if model_name == "Net_1":
@@ -124,10 +122,10 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         target_model = CNN(num_features, num_classes)
         shadow_model = CNN(num_features, num_classes)
 
-    train_target_model(TARGET_PATH, device, min_target_train, min_target_test, target_model)
-    train_shadow_model(TARGET_PATH, device, min_shadow_train, min_shadow_test, shadow_model)
-    test_mia(TARGET_PATH, device, num_classes, min_target_train, min_target_test,
-             min_shadow_train, min_shadow_test,
+    train_target_model(TARGET_PATH, device, selected_target_train, selected_target_test, target_model)
+    train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model)
+    test_mia(TARGET_PATH, device, num_classes, selected_target_train, selected_target_test,
+             selected_shadow_train, selected_shadow_test,
              target_model, shadow_model, mode)
 
 
