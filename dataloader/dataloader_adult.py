@@ -29,9 +29,11 @@ class Adult(Dataset):
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
 
+        # 分离特征和标签
         X = df.drop('income', axis=1).values
         target = df['income'].values
 
+        # 对数值特征进行标准化
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
