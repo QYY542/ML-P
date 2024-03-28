@@ -84,22 +84,18 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     device = torch.device("cuda")
 
     # 取前三分之一样本的数据
-    length = len(dataset)
     n = 800
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset, random_dataset_shadow_min, random_dataset_shadow_max, random_dataset_shadow_random = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, random_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
 
     if selected_dataset_name == "min":
         selected_dataset = min_dataset
-        selected_shadow_dataset = random_dataset_shadow_min
     elif selected_dataset_name == "max":
         selected_dataset = max_dataset
-        selected_shadow_dataset = random_dataset_shadow_max
     elif selected_dataset_name == "random":
         selected_dataset = random_dataset
-        selected_shadow_dataset = random_dataset_shadow_random
 
     # 对selected_dataset数据集进行分析
     selected_length = len(selected_dataset)
@@ -112,8 +108,8 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     )
 
     min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        random_dataset_shadow_random, [each_selected_length, each_selected_length,
-                                  selected_length - (each_selected_length * 2)]
+        random_dataset_shadow, [each_selected_length, each_selected_length,
+                                selected_length - (each_selected_length * 2)]
     )
 
     # 获取模型并且评估
@@ -130,9 +126,9 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         target_model = CNN(num_features, num_classes)
         shadow_model = CNN(num_features, num_classes)
 
-    train_target_model(TARGET_PATH + selected_dataset_name, device, min_target_train, min_target_test, target_model)
-    train_shadow_model(TARGET_PATH + selected_dataset_name, device, min_shadow_train, min_shadow_test, shadow_model)
-    test_mia(TARGET_PATH + selected_dataset_name, device, num_classes, min_target_train, min_target_test,
+    train_target_model(TARGET_PATH, device, min_target_train, min_target_test, target_model)
+    train_shadow_model(TARGET_PATH, device, min_shadow_train, min_shadow_test, shadow_model)
+    test_mia(TARGET_PATH, device, num_classes, min_target_train, min_target_test,
              min_shadow_train, min_shadow_test,
              target_model, shadow_model, mode)
 
