@@ -179,8 +179,8 @@ def prepare_dataset(dataset_name, model_name):
 
     # 划分目标和影子数据集
     length = len(dataset)
-    each_train_length = length // 3
-    each_test_length = length // 6
+    each_train_length = length // 4
+    each_test_length = length // 4
     target_train, target_test, shadow_train, shadow_test, _ = torch.utils.data.random_split(
         dataset, [each_train_length, each_test_length, each_train_length, each_test_length, length - (each_train_length * 2 + each_test_length * 2)]
     )
