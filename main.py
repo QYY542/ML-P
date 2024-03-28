@@ -88,7 +88,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset = evaluator.get_specific_datasets_and_distances(n)
 
     if selected_dataset_name == "min":
         selected_dataset = min_dataset
@@ -103,7 +103,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     num_features = next(iter(selected_dataset))[0].shape[0]
 
     selected_target_train = selected_dataset
-    selected_target_test = random_dataset_shadow
+    selected_target_test = test_dataset
 
     selected_shadow_train = random_dataset_shadow
     selected_shadow_test = random_dataset
