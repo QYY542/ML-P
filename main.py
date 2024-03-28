@@ -63,7 +63,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     # 取前三分之一样本的数据
     length = len(dataset)
-    n = length // 2
+    n = length // 3
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
