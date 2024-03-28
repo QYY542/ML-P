@@ -83,28 +83,37 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
 
-    # 取前三分之一样本的数据
+    # 取前四分之一样本的数据
     length = len(dataset)
-    n = length // 3
+    n = length // 4
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, random_dataset, random_dataset_shadow_min, random_dataset_shadow_max, random_dataset_shadow_random = evaluator.get_specific_datasets_and_distances(n)
 
     if selected_dataset_name == "min":
         selected_dataset = min_dataset
+        selected_shadow_dataset = random_dataset_shadow_min
     elif selected_dataset_name == "max":
         selected_dataset = max_dataset
+        selected_shadow_dataset = random_dataset_shadow_max
     elif selected_dataset_name == "random":
         selected_dataset = random_dataset
+        selected_shadow_dataset = random_dataset_shadow_random
 
     # 对selected_dataset数据集进行分析
     selected_length = len(selected_dataset)
-    each_selected_length = selected_length // 4
+    each_selected_length = selected_length // 2
     num_features = next(iter(selected_dataset))[0].shape[0]
-    min_target_train, min_target_test, min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        selected_dataset, [each_selected_length, each_selected_length, each_selected_length, each_selected_length,
-                           selected_length - (each_selected_length * 4)]
+
+    min_target_train, min_target_test, _ = torch.utils.data.random_split(
+        selected_dataset, [each_selected_length, each_selected_length,
+                           selected_length - (each_selected_length * 2)]
+    )
+
+    min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
+        selected_shadow_dataset, [each_selected_length, each_selected_length,
+                                  selected_length - (each_selected_length * 2)]
     )
 
     # 获取模型并且评估
@@ -182,7 +191,8 @@ def prepare_dataset(dataset_name, model_name):
     each_train_length = length // 4
     each_test_length = length // 4
     target_train, target_test, shadow_train, shadow_test, _ = torch.utils.data.random_split(
-        dataset, [each_train_length, each_test_length, each_train_length, each_test_length, length - (each_train_length * 2 + each_test_length * 2)]
+        dataset, [each_train_length, each_test_length, each_train_length, each_test_length,
+                  length - (each_train_length * 2 + each_test_length * 2)]
     )
     num_features = next(iter(dataset))[0].shape[0]
 

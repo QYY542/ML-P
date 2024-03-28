@@ -47,7 +47,22 @@ class KmeansDataset:
         max_dataset = Subset(self.dataset, max_indices)
         random_dataset = Subset(self.dataset, random_indices)
 
-        return min_dataset, max_dataset, random_dataset
+        # 创建排除了最小和最大聚类距离样本的随机数据集
+        available_indices_for_min = list(set(range(len(self.dataset))) - set(min_indices))
+        random_indices_shadow_min = np.random.choice(available_indices_for_min, n, replace=False)
+        random_dataset_shadow_min = Subset(self.dataset, random_indices_shadow_min)
+
+        available_indices_for_max = list(set(range(len(self.dataset))) - set(max_indices))
+        random_indices_shadow_max = np.random.choice(available_indices_for_max, n, replace=False)
+        random_dataset_shadow_max = Subset(self.dataset, random_indices_shadow_max)
+
+        # 创建random_dataset的影子数据集，确保与random_dataset无重叠
+        all_indices = set(range(len(self.dataset)))
+        remaining_indices_for_shadow_random = list(all_indices - set(random_indices))
+        random_indices_shadow_random = np.random.choice(remaining_indices_for_shadow_random, n, replace=False)
+        random_dataset_shadow_random = Subset(self.dataset, random_indices_shadow_random)
+
+        return min_dataset, max_dataset, random_dataset, random_dataset_shadow_min, random_dataset_shadow_max, random_dataset_shadow_random
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
