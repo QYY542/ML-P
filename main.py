@@ -112,7 +112,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     )
 
     min_shadow_train, min_shadow_test, _ = torch.utils.data.random_split(
-        selected_shadow_dataset, [each_selected_length, each_selected_length,
+        random_dataset_shadow_min, [each_selected_length, each_selected_length,
                                   selected_length - (each_selected_length * 2)]
     )
 
