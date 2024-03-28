@@ -26,37 +26,34 @@ class Hospital(Dataset):
         age_mapping = {f'[{10*i}-{10*(i+1)})': 5+10*i for i in range(10)}
         df['age'] = df['age'].map(age_mapping)
 
-        # 分类数据处理
-        categorical_columns = ['race', 'gender','weight', 'admission_type_id', 'discharge_disposition_id',
-                               'admission_source_id', 'medical_specialty', 'payer_code', 'diag_1', 'diag_2', 'diag_3',
-                               'max_glu_serum', 'A1Cresult', 'change', 'diabetesMed']
+        # 随机填充缺失值
+        missing_columns = ['race', 'weight', 'payer_code', 'medical_specialty', 'diag_1', 'diag_2', 'diag_3']
+        for column in missing_columns:
+            if df[column].dtype == 'object':  # 对于分类数据
+                existing_values = df[column].dropna().unique()
+                df[column] = df[column].apply(lambda x: np.random.choice(existing_values) if pd.isnull(x) else x)
+            else:  # 对于数值数据（如果有）
+                range_min = df[column].min()
+                range_max = df[column].max()
+                df[column] = df[column].apply(lambda x: np.random.uniform(range_min, range_max) if pd.isnull(x) else x)
 
-        # 对分类特征进行随机值填充
-        for column in categorical_columns:
-            if df[column].isnull().any():
-                # 计算非缺失值的分布
-                distribution = df[column].dropna().value_counts(normalize=True)
-                # 生成随机抽样
-                random_sampling = np.random.choice(distribution.index, size=df[column].isnull().sum(),
-                                                   p=distribution.values)
-                # 填充缺失值
-                df[column][df[column].isnull()] = random_sampling
-
+        # 对所有的分类数据使用LabelEncoder转换
+        for column in df.select_dtypes(include=['object']).columns:
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
 
         # 分离特征和标签
         X = df.drop('readmitted', axis=1)
-        y = df['readmitted'].values
+        target = df['readmitted'].values
 
         # 对数值特征进行标准化
         numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
         scaler = StandardScaler()
         X[numeric_features] = scaler.fit_transform(X[numeric_features])
 
-        # 将处理后的特征转换为张量
+        # 将处理后的特征转换为适用于PyTorch的格式
         self.X = torch.tensor(X.values, dtype=torch.float)
-        self.y = torch.tensor(y, dtype=torch.long)
+        self.target = torch.tensor(target, dtype=torch.long)
 
     def __len__(self) -> int:
         return len(self.X)
