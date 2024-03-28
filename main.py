@@ -15,12 +15,28 @@ from dataloader.dataloader import *
 
 def test_QID(dataset_name):
     if dataset_name == 'Student':
+        # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）、入学成绩（Admission grade)
+        qid_indices_names = ["Marital status", "Gender", "Age at enrollment", "Nationality", "Admission grade"]
+        qid_indices = [0, 17, 19, 7, 12]
         dataset = Student()
 
     elif dataset_name == 'Obesity':
         dataset = Obesity()
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
+        qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
+
+    elif dataset_name == 'Hospital':
+        dataset = Hospital()
+        # 性别（Gender）、年龄（Age）、人种（Race）和体重（Weight）
+        qid_indices_names = ["Race", "Gender", "Age", "Weight"]
+        qid_indices = [2, 3, 4, 5]
+
+    elif dataset_name == 'Adult':
+        dataset = Adult()
+        # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
+        qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
+        qid_indices = [0, 8, 9, 13]
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
@@ -36,8 +52,9 @@ def test_QID(dataset_name):
     normalized_impacts = [impact / total_impact for impact in impacts]
 
     # 输出标准化后的impact值
-    for index, normalized_impact in zip(qid_indices, normalized_impacts):
-        print(f"Normalized Impact for QID at index {index}: {normalized_impact}")
+    for index, normalized_impact in zip(range(len(qid_indices)), normalized_impacts):
+        print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
+
 
 def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     # 假设您已经正确加载了数据集
@@ -56,10 +73,6 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     elif dataset_name == 'Adult':
         print('Adult_kmeans')
         dataset = Adult()
-        num_classes = 3
-    elif dataset_name == 'Hospital':
-        print('Hospital_kmeans')
-        dataset = Hospital()
         num_classes = 3
 
     # 打印前两个样本
@@ -166,9 +179,10 @@ def prepare_dataset(dataset_name, model_name):
 
     # 划分目标和影子数据集
     length = len(dataset)
-    each_length = length // 4
+    each_train_length = length // 3
+    each_test_length = length // 6
     target_train, target_test, shadow_train, shadow_test, _ = torch.utils.data.random_split(
-        dataset, [each_length, each_length, each_length, each_length, length - (each_length * 4)]
+        dataset, [each_train_length, each_test_length, each_train_length, each_test_length, length - (each_train_length * 2 + each_test_length * 2)]
     )
     num_features = next(iter(dataset))[0].shape[0]
 
