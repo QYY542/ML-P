@@ -185,7 +185,7 @@ class ResNet(nn.Module):
 
 # 前馈神经网络
 class MLP(nn.Module):
-    def __init__(self, input_size, output_size, hidden_sizes=[128, 64], dropout_rate=0.5):
+    def __init__(self, input_size, output_size, hidden_sizes=[128, 64], dropout_rate=0.3):
         super(MLP, self).__init__()
 
         # 初始化模块列表

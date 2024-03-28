@@ -57,6 +57,10 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         print('Adult_kmeans')
         dataset = Adult()
         num_classes = 3
+    elif dataset_name == 'Hospital':
+        print('Hospital_kmeans')
+        dataset = Hospital()
+        num_classes = 3
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
