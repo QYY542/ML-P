@@ -62,6 +62,11 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         dataset = Hospital()
         num_classes = 3
 
+    # 打印前两个样本
+    for i in range(2):
+        X, target = dataset[i]
+        print(f'Sample {i}: {X}, Target: {target}')
+
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
 
@@ -153,6 +158,11 @@ def prepare_dataset(dataset_name, model_name):
         print("Hospital")
         dataset = Hospital()
         num_classes = 3
+
+    # 打印前两个样本
+    for i in range(2):
+        X, target = dataset[i]
+        print(f'Sample {i}: {X}, Target: {target}')
 
     # 划分目标和影子数据集
     length = len(dataset)
