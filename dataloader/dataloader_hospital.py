@@ -1,6 +1,7 @@
 import os
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
+import numpy as np
 import torch
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -26,37 +27,36 @@ class Hospital(Dataset):
         df['age'] = df['age'].map(age_mapping)
 
         # 分类数据处理
-        categorical_columns = ['race', 'gender', 'admission_type_id', 'discharge_disposition_id',
+        categorical_columns = ['race', 'gender','weight', 'admission_type_id', 'discharge_disposition_id',
                                'admission_source_id', 'medical_specialty', 'payer_code', 'diag_1', 'diag_2', 'diag_3',
                                'max_glu_serum', 'A1Cresult', 'change', 'diabetesMed']
 
-        # 使用众数填补分类特征的缺失值
+        # 对分类特征进行随机值填充
         for column in categorical_columns:
-            most_frequent = df[column].mode()[0]
-            df[column] = df[column].fillna(most_frequent)
+            if df[column].isnull().any():
+                # 计算非缺失值的分布
+                distribution = df[column].dropna().value_counts(normalize=True)
+                # 生成随机抽样
+                random_sampling = np.random.choice(distribution.index, size=df[column].isnull().sum(),
+                                                   p=distribution.values)
+                # 填充缺失值
+                df[column][df[column].isnull()] = random_sampling
+
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
 
-        # 'weight'列特殊处理，此处选择填补为众数，考虑到您不想使用'Unknown'
-        if 'weight' in df.columns:
-            df['weight'] = df['weight'].fillna(df['weight'].mode()[0])
-            lbl_weight = LabelEncoder()
-            df['weight'] = lbl_weight.fit_transform(df['weight'])
-
         # 分离特征和标签
-        X = df.drop('readmitted', axis=1).values
-        target = df['readmitted'].values
+        X = df.drop('readmitted', axis=1)
+        y = df['readmitted'].values
 
         # 对数值特征进行标准化
-        numeric_features = df.select_dtypes(include=['int64', 'float64']).columns.difference(['readmitted'])
+        numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
         scaler = StandardScaler()
-        df[numeric_features] = scaler.fit_transform(df[numeric_features])
+        X[numeric_features] = scaler.fit_transform(X[numeric_features])
 
-        X_scaled = df[numeric_features].values
-
-        # 加载数据
-        self.X = torch.tensor(X_scaled, dtype=torch.float)
-        self.target = torch.tensor(target, dtype=torch.long)
+        # 将处理后的特征转换为张量
+        self.X = torch.tensor(X.values, dtype=torch.float)
+        self.y = torch.tensor(y, dtype=torch.long)
 
     def __len__(self) -> int:
         return len(self.X)
