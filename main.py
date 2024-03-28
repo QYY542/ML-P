@@ -83,9 +83,10 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
 
-    # 取前三分之一样本的数据
+    # 取前四分之一样本的数据
     length = len(dataset)
-    n = length // 3
+    # n = length // 4
+    n = 300
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)

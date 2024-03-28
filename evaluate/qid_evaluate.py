@@ -47,7 +47,9 @@ class QID_VE:
         for _ in range(num_trials):
             # 打乱特定特征
             X_train_shuffled = X_train.copy()
-            np.random.shuffle(X_train_shuffled[:, qid_index])
+            # 生成与特征长度相同的0-1之间的随机值来填充
+            random_values = np.random.uniform(0, 1, X_train_shuffled[:, qid_index].shape)
+            X_train_shuffled[:, qid_index] = random_values
 
             # 训练打乱特征后的模型并计算评分
             model_shuffled = self.train_model(X_train_shuffled, y_train)
