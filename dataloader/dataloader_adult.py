@@ -42,9 +42,12 @@ class Adult(Dataset):
     def __len__(self) -> int:
         return len(self.X)
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+    def __getitem__(self, index) -> Tuple[Any, Any]:
         X = self.X[index]
-        target = self.target[index]
+        target: Any = []
+        target.append(self.target[index])
+        if target:
+            target = tuple(target) if len(target) > 1 else target[0]
 
         return X, target
 

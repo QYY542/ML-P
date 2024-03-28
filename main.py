@@ -53,10 +53,10 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         print('Hospital_kmeans')
         dataset = Hospital()
         num_classes = 3
-    elif dataset_name == "ADULT":
-        print("ADULT")
+    elif dataset_name == 'Adult':
+        print('Adult_kmeans')
         dataset = Adult()
-        num_classes = 2
+        num_classes = 3
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
@@ -133,8 +133,8 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
 
 def prepare_dataset(dataset_name, model_name):
     # 数据集
-    if dataset_name == "ADULT":
-        print("ADULT")
+    if dataset_name == "Adult":
+        print("Adult")
         dataset = Adult()
         num_classes = 2
     elif dataset_name == "Obesity":
