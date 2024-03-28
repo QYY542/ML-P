@@ -94,7 +94,7 @@ class PartialAttackModel(nn.Module):
 
 # 自定义Net_1
 class Net_1(nn.Module):
-    def __init__(self, input_size, num_classes, dropout = 0.3):
+    def __init__(self, input_size, num_classes, dropout = 0.5):
         super(Net_1, self).__init__()
         # 定义网络层
         self.fc1 = nn.Linear(input_size, 256)
