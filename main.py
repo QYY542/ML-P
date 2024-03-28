@@ -84,7 +84,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     device = torch.device("cuda")
 
     # 取前三分之一样本的数据
-    n = 400
+    n = 500
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
