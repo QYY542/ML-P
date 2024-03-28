@@ -1,21 +1,12 @@
 import os
-import numpy as np
-import torch
-from sklearn.pipeline import Pipeline
-from torch.utils.data import Dataset
-import tarfile
-import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import Net_1
-
 import torch
-from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from torch.utils.data import Dataset
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from torch.utils.data import Dataset
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 
 
 class Hospital(Dataset):
@@ -24,42 +15,36 @@ class Hospital(Dataset):
         self.root = './dataloader/datasets/hospital/'
         self.filename = 'hospital.csv'
 
-        # 加载数据
+        # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
-
-        # 将'?'替换为NaN以便于处理
-        df.replace('?', np.nan, inplace=True)
 
         # 将目标标签转换为数值
         df['readmitted'] = df['readmitted'].map({'NO': 0, '>30': 1, '<30': 2})
 
-        # 定义数值和分类特征
-        numeric_columns = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications',
-                           'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
+        # 处理分类数据
+        # 请确保此处列出了所有实际的分类特征列名
         categorical_columns = ['race', 'gender', 'age', 'weight', 'admission_type_id', 'discharge_disposition_id',
                                'admission_source_id', 'medical_specialty', 'payer_code', 'diag_1', 'diag_2', 'diag_3',
                                'max_glu_serum', 'A1Cresult', 'change', 'diabetesMed']
+        df[categorical_columns] = df[categorical_columns].apply(
+            lambda col: LabelEncoder().fit_transform(col.astype(str)))
 
-        # 处理缺失值
-        df[numeric_columns] = SimpleImputer(strategy='median').fit_transform(df[numeric_columns])
-        df[categorical_columns] = SimpleImputer(strategy='constant', fill_value='missing').fit_transform(
-            df[categorical_columns])
+        # 除了目标标签 'readmitted' 和已处理的分类列外，其余列都是数值型，可以直接标准化
+        numeric_columns = df.columns.drop(categorical_columns + ['readmitted'])
+        df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
+        df[numeric_columns] = df[numeric_columns].fillna(0)
 
-        # 标签编码分类特征
-        for col in categorical_columns:
-            df[col] = LabelEncoder().fit_transform(df[col].astype(str))
-
-        # 标准化数值特征
-        df[numeric_columns] = StandardScaler().fit_transform(df[numeric_columns])
+        # 对数值特征进行标准化
+        scaler = StandardScaler()
+        df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
 
         # 分离特征和标签
         X = df.drop('readmitted', axis=1).values
-        y = df['readmitted'].values
+        target = df['readmitted'].values
 
-        # 转换为torch.tensor
+        # 加载数据
         self.X = torch.tensor(X, dtype=torch.float)
-        self.target = torch.tensor(y, dtype=torch.long)
-
+        self.target = torch.tensor(target, dtype=torch.long)
     def __len__(self) -> int:
         return len(self.X)
 
