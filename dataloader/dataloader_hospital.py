@@ -17,6 +17,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 
+
 class Hospital(Dataset):
     def __init__(self) -> None:
         super().__init__()
@@ -33,33 +34,30 @@ class Hospital(Dataset):
         df['readmitted'] = df['readmitted'].map({'NO': 0, '>30': 1, '<30': 2})
 
         # 定义数值和分类特征
-        numeric_columns = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications', 'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
-        categorical_columns = ['race', 'gender', 'age', 'weight', 'admission_type_id', 'discharge_disposition_id', 'admission_source_id', 'medical_specialty', 'payer_code', 'diag_1', 'diag_2', 'diag_3', 'max_glu_serum', 'A1Cresult', 'change', 'diabetesMed']
+        numeric_columns = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications',
+                           'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
+        categorical_columns = ['race', 'gender', 'age', 'weight', 'admission_type_id', 'discharge_disposition_id',
+                               'admission_source_id', 'medical_specialty', 'payer_code', 'diag_1', 'diag_2', 'diag_3',
+                               'max_glu_serum', 'A1Cresult', 'change', 'diabetesMed']
 
-        # 处理缺失值和进行特征编码
-        numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())])
+        # 处理缺失值
+        df[numeric_columns] = SimpleImputer(strategy='median').fit_transform(df[numeric_columns])
+        df[categorical_columns] = SimpleImputer(strategy='constant', fill_value='missing').fit_transform(
+            df[categorical_columns])
 
-        categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+        # 标签编码分类特征
+        for col in categorical_columns:
+            df[col] = LabelEncoder().fit_transform(df[col].astype(str))
 
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_columns),
-                ('cat', categorical_transformer, categorical_columns)])
+        # 标准化数值特征
+        df[numeric_columns] = StandardScaler().fit_transform(df[numeric_columns])
 
         # 分离特征和标签
-        X = df.drop('readmitted', axis=1)
-        y = df['readmitted']
-
-        # 应用预处理
-        X_preprocessed = preprocessor.fit_transform(X)
-        y = y.to_numpy()
+        X = df.drop('readmitted', axis=1).values
+        y = df['readmitted'].values
 
         # 转换为torch.tensor
-        self.X = torch.tensor(X_preprocessed.toarray(), dtype=torch.float)
+        self.X = torch.tensor(X, dtype=torch.float)
         self.target = torch.tensor(y, dtype=torch.long)
 
     def __len__(self) -> int:
