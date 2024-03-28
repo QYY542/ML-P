@@ -53,8 +53,12 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         print('Hospital_kmeans')
         dataset = Hospital()
         num_classes = 3
+    elif dataset_name == "ADULT":
+        print("ADULT")
+        dataset = Adult()
+        num_classes = 2
 
-    TARGET_PATH = "./dataloader/trained_model/" + "obesity" + selected_dataset_name + "Net_1"
+    TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
     device = torch.device("cuda")
 
     # 取前三分之一样本的数据
