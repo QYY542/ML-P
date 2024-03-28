@@ -111,12 +111,12 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     # 获取模型并且评估
     if model_name == "Net_1":
         print("Net_1")
-        target_model = Net_1(num_features, num_classes)
-        shadow_model = Net_1(num_features, num_classes)
-    elif model_name == "MLP":
-        print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
+    elif model_name == "MLP":
+        print("MLP")
+        target_model = DeepEmbeddingNetwork(num_features, num_classes)
+        shadow_model = DeepEmbeddingNetwork(num_features, num_classes)
     elif model_name == "CNN":
         print("CNN")
         target_model = CNN(num_features, num_classes)
@@ -191,12 +191,12 @@ def prepare_dataset(dataset_name, model_name):
     # 模型
     if model_name == "Net_1":
         print("Net_1")
-        target_model = Net_1(num_features, num_classes)
-        shadow_model = Net_1(num_features, num_classes)
-    elif model_name == "MLP":
-        print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
+    elif model_name == "MLP":
+        print("MLP")
+        target_model = DeepEmbeddingNetwork(num_features, num_classes)
+        shadow_model = DeepEmbeddingNetwork(num_features, num_classes)
     elif model_name == "CNN":
         print("CNN")
         target_model = CNN(num_features, num_classes)

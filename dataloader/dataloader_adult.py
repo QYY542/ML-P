@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import Any, Callable, List, Optional, Union, Tuple
 
-from models.define_models import  Net_1
+from models.define_models import  MLP
 
 
 class Adult(Dataset):

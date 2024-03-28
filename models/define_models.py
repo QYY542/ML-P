@@ -92,10 +92,10 @@ class PartialAttackModel(nn.Module):
         return final_result
 
 
-# 自定义Net_1
-class Net_1(nn.Module):
-    def __init__(self, input_size, num_classes, dropout = 0.4):
-        super(Net_1, self).__init__()
+# MLP
+class MLP(nn.Module):
+    def __init__(self, input_size, num_classes, dropout=0.4):
+        super(MLP, self).__init__()
         # 定义网络层
         self.fc1 = nn.Linear(input_size, 256)
         self.leaky_relu = nn.LeakyReLU(0.01)
@@ -123,45 +123,31 @@ class Net_1(nn.Module):
         x = self.fc4(x)
         return x
 
-# 前馈神经网络
-class MLP(nn.Module):
-    def __init__(self, input_size, output_size, hidden_sizes=[128, 64], dropout_rate=0.3):
-        super(MLP, self).__init__()
 
-        # 初始化模块列表
-        self.layers = nn.ModuleList()
+# 深度嵌入网络
+class DeepEmbeddingNetwork(nn.Module):
+    def __init__(self, category_sizes, n_numerical_features, embedding_size, num_classes):
+        super(DeepEmbeddingNetwork, self).__init__()
+        self.embeddings = nn.ModuleList([nn.Embedding(categories, embedding_size) for categories in category_sizes])
+        total_embedding_size = embedding_size * len(category_sizes)
+        self.fc1 = nn.Linear(n_numerical_features + total_embedding_size, 256)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.dropout1 = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(256, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.dropout2 = nn.Dropout(0.5)
+        self.fc3 = nn.Linear(128, num_classes)
 
-        # 添加第一层
-        self.layers.append(nn.Linear(input_size, hidden_sizes[0]))
-        self.layers.append(nn.ReLU())
-        self.layers.append(nn.BatchNorm1d(hidden_sizes[0]))
-        self.layers.append(nn.Dropout(dropout_rate))
-
-        # 根据hidden_sizes添加更多层
-        for i in range(1, len(hidden_sizes)):
-            self.layers.append(nn.Linear(hidden_sizes[i - 1], hidden_sizes[i]))
-            self.layers.append(nn.ReLU())
-            self.layers.append(nn.BatchNorm1d(hidden_sizes[i]))
-            self.layers.append(nn.Dropout(dropout_rate))
-
-        # 输出层
-        self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
-
-        # 权重初始化
-        self.apply(self.init_weights)
-
-    def forward(self, inputs):
-        x = inputs
-        for layer in self.layers:
-            x = layer(x)
+    def forward(self, x_categorical, x_numerical):
+        embeddings = [embedding(x_categorical[:, i]) for i, embedding in enumerate(self.embeddings)]
+        x_categorical = torch.cat(embeddings, 1)
+        x = torch.cat([x_numerical, x_categorical], 1)
+        x = F.relu(self.bn1(self.fc1(x)))
+        x = self.dropout1(x)
+        x = F.relu(self.bn2(self.fc2(x)))
+        x = self.dropout2(x)
+        x = self.fc3(x)
         return x
-
-    @staticmethod
-    def init_weights(m):
-        if isinstance(m, nn.Linear):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
 
 # CNN网络

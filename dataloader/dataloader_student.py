@@ -6,7 +6,7 @@ import tarfile
 import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import Net_1
+from models.define_models import MLP
 
 import torch
 from torch.utils.data import Dataset
