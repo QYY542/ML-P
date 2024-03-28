@@ -94,19 +94,19 @@ class PartialAttackModel(nn.Module):
 
 # 自定义Net_1
 class Net_1(nn.Module):
-    def __init__(self, input_size, num_classes):
+    def __init__(self, input_size, num_classes, dropout = 0.3):
         super(Net_1, self).__init__()
         # 定义网络层
         self.fc1 = nn.Linear(input_size, 256)
         self.leaky_relu = nn.LeakyReLU(0.01)
         self.bn1 = nn.BatchNorm1d(256)
-        self.dropout1 = nn.Dropout(0.5)
+        self.dropout1 = nn.Dropout(dropout)
         self.fc2 = nn.Linear(256, 512)
         self.bn2 = nn.BatchNorm1d(512)
-        self.dropout2 = nn.Dropout(0.5)
+        self.dropout2 = nn.Dropout(dropout)
         self.fc3 = nn.Linear(512, 1024)
         self.bn3 = nn.BatchNorm1d(1024)
-        self.dropout3 = nn.Dropout(0.5)
+        self.dropout3 = nn.Dropout(dropout)
         self.fc4 = nn.Linear(1024, num_classes)
 
     def forward(self, x):
