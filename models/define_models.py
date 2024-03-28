@@ -123,66 +123,6 @@ class Net_1(nn.Module):
         x = self.fc4(x)
         return x
 
-
-# 自定义ResNet
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, in_planes, planes, stride=1):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes * self.expansion, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes * self.expansion)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != planes * self.expansion:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, planes * self.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * self.expansion)
-            )
-
-    def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        out = F.relu(out)
-        return out
-
-
-class ResNet(nn.Module):
-    def __init__(self, num_features, num_classes):
-        super(ResNet, self).__init__()
-        self.in_planes = 64
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.layer1 = self._make_layer(BasicBlock, 64, 2, stride=1)
-        self.linear = nn.Linear(64 * BasicBlock.expansion, num_classes)
-
-        # Adapting the first layer to match num_features
-        self.adapt_first_layer = nn.Sequential(
-            nn.Linear(num_features, 64),
-            nn.Unflatten(1, (1, 8, 8))  # Example reshape, adjust based on your input reshaping strategy
-        )
-
-    def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1] * (num_blocks - 1)
-        layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
-            self.in_planes = planes * block.expansion
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        out = self.adapt_first_layer(x)  # Adapt the input
-        out = F.relu(self.bn1(self.conv1(out)))
-        out = self.layer1(out)
-        out = F.avg_pool2d(out, out.size()[3])
-        out = torch.flatten(out, 1)
-        out = self.linear(out)
-        return out
-
-
 # 前馈神经网络
 class MLP(nn.Module):
     def __init__(self, input_size, output_size, hidden_sizes=[128, 64], dropout_rate=0.3):

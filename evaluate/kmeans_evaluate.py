@@ -4,21 +4,15 @@ from sklearn.preprocessing import StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 
-
 class KmeansDataset:
     def __init__(self, dataset):
         self.dataset = dataset
 
-    def compute_kmeans_distance(self, n_clusters=5):
-        # 加载所有数据
-        loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
+    def compute_kmeans_distance(self, n_clusters=None):
+        X_scaled = self.load_and_scale_data()
 
-        for X, _ in loader:
-            X = X.numpy()  # 假设X是numpy数组
-
-        # 数据标准化
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+        if n_clusters is None:
+            n_clusters = self.find_optimal_clusters(X_scaled)
 
         # 训练k-means模型
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
@@ -54,3 +48,24 @@ class KmeansDataset:
         random_dataset = Subset(self.dataset, random_indices)
 
         return min_dataset, max_dataset, random_dataset
+    def load_and_scale_data(self):
+        loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
+        for X, _ in loader:
+            X = X.numpy()  # 假设X是numpy数组
+        # 数据标准化
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        return X_scaled
+
+    def find_optimal_clusters(self, X_scaled, max_clusters=10):
+        sse = []
+        for n_clusters in range(1, max_clusters + 1):
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            kmeans.fit(X_scaled)
+            sse.append(kmeans.inertia_)
+
+        # Return the optimal number of clusters (elbow point)
+        # This is a placeholder; in practice, you should visually identify the elbow point
+        # or use an algorithmic approach
+        optimal_clusters = sse.index(min(sse)) + 1
+        return optimal_clusters
