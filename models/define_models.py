@@ -152,16 +152,12 @@ class DeepEmbeddingNetwork(nn.Module):
 
 # ResNet网络
 class Residual(nn.Module):
-    def __init__(self, input_channels, num_channels,
-                 use_1x1conv=False, strides=1):
-        super().__init__()
-        self.conv1 = nn.Conv1d(input_channels, num_channels,
-                               kernel_size=3, padding=1, stride=strides)
-        self.conv2 = nn.Conv1d(num_channels, num_channels,
-                               kernel_size=3, padding=1)
+    def __init__(self, input_channels, num_channels, use_1x1conv=False, strides=1):
+        super(Residual, self).__init__()
+        self.conv1 = nn.Conv1d(input_channels, num_channels, kernel_size=3, padding=1, stride=strides)
+        self.conv2 = nn.Conv1d(num_channels, num_channels, kernel_size=3, padding=1)
         if use_1x1conv:
-            self.conv3 = nn.Conv1d(input_channels, num_channels,
-                                   kernel_size=1, stride=strides)
+            self.conv3 = nn.Conv1d(input_channels, num_channels, kernel_size=1, stride=strides)
         else:
             self.conv3 = None
         self.bn1 = nn.BatchNorm1d(num_channels)
@@ -175,45 +171,40 @@ class Residual(nn.Module):
         Y += X
         return F.relu(Y)
 
-
-def resnet_block(input_channels, num_channels, num_residuals,
-                 first_block=False):
+def resnet_block(input_channels, num_channels, num_residuals, first_block=False):
     blk = []
     for i in range(num_residuals):
         if i == 0 and not first_block:
-            blk.append(Residual(input_channels, num_channels,
-                                use_1x1conv=True, strides=2))
+            blk.append(Residual(input_channels, num_channels, use_1x1conv=True, strides=2))
         else:
             blk.append(Residual(num_channels, num_channels))
     return blk
 
-
-b1 = nn.Sequential(nn.Conv1d(1, 64, kernel_size=7, stride=2, padding=3),
-                   nn.BatchNorm1d(64), nn.ReLU(),
-                   nn.MaxPool1d(kernel_size=3, stride=2, padding=1))
-
-b2 = nn.Sequential(*resnet_block(64, 64, 2, first_block=True))
-b3 = nn.Sequential(*resnet_block(64, 128, 2))
-b4 = nn.Sequential(*resnet_block(128, 256, 2))
-b5 = nn.Sequential(*resnet_block(256, 512, 2))
-
-
 class ResNetModel(nn.Module):
-    def __init__(self, input_size, num_classes):
+    def __init__(self, num_classes):
         super(ResNetModel, self).__init__()
-
+        self.b1 = nn.Sequential(nn.Conv1d(1, 64, kernel_size=7, stride=2, padding=3),
+                                nn.BatchNorm1d(64), nn.ReLU(),
+                                nn.MaxPool1d(kernel_size=3, stride=2, padding=1))
+        self.b2 = nn.Sequential(*resnet_block(64, 64, 2, first_block=True))
+        self.b3 = nn.Sequential(*resnet_block(64, 128, 2))
+        self.b4 = nn.Sequential(*resnet_block(128, 256, 2))
+        self.b5 = nn.Sequential(*resnet_block(256, 512, 2))
         self.res = nn.Sequential(
-            b1, b2, b3, b4, b5,
+            self.b1, self.b2, self.b3, self.b4, self.b5,
             nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(),
+            nn.Flatten()
+        )
+        self.fc = nn.Sequential(
             nn.Linear(512, 512), nn.ReLU(),
+            nn.Dropout(0.5),  # 添加Dropout层
             nn.Linear(512, 64), nn.ReLU(),
+            nn.Dropout(0.5),  # 再次添加Dropout层
             nn.Linear(64, num_classes)
         )
-        # 定义全连接层，将 Transformer 编码器的输出映射到分类空间
-        # self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
         x = self.res(x)
+        x = self.fc(x)
         return x
 
