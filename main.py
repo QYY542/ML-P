@@ -110,18 +110,16 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, num_featu
     selected_shadow_test = random_dataset
 
     # 获取模型并且评估
-    if model_name == "Net_1":
-        print("Net_1")
+    if model_name == "MLP":
+        print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
-    elif model_name == "MLP":
-        print("MLP")
-        target_model = DeepEmbeddingNetwork(num_features, num_classes)
-        shadow_model = DeepEmbeddingNetwork(num_features, num_classes)
-    elif model_name == "CNN":
-        print("CNN")
-        target_model = CNN(num_features, num_classes)
-        shadow_model = CNN(num_features, num_classes)
+    elif model_name == "ResNet":
+        print("ResNet")
+        print(num_features)
+        print(num_classes)
+        target_model = ResNetModel(num_features, num_classes)
+        shadow_model = ResNetModel(num_features, num_classes)
 
     train_target_model(TARGET_PATH, device, selected_target_train, selected_target_test, target_model, model_name, num_features)
     train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name, num_features)
@@ -190,14 +188,10 @@ def prepare_dataset(dataset_name, model_name):
     num_features = next(iter(dataset))[0].shape[0]
 
     # 模型
-    if model_name == "Net_1":
-        print("Net_1")
+    if model_name == "MLP":
+        print("MLP")
         target_model = MLP(num_features, num_classes)
         shadow_model = MLP(num_features, num_classes)
-    elif model_name == "MLP":
-        print("MLP")
-        target_model = DeepEmbeddingNetwork(num_features, num_classes)
-        shadow_model = DeepEmbeddingNetwork(num_features, num_classes)
     elif model_name == "ResNet":
         print("ResNet")
         print(num_features)
