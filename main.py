@@ -56,7 +56,7 @@ def test_QID(dataset_name):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
 
-def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, num_features):
+def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
