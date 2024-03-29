@@ -102,9 +102,9 @@ class target_model_training():
 
 def train_target_model(PATH, device, train_set, test_set, model, model_name, num_features):
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=128, shuffle=True, num_workers=2)
+        train_set, batch_size=64, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=128, shuffle=True, num_workers=2)
+        test_set, batch_size=64, shuffle=True, num_workers=2)
 
     model = target_model_training(train_loader, test_loader, model, device, num_features, model_name)
     acc_train = 0
@@ -205,9 +205,9 @@ class shadow_model_training():
 
 def train_shadow_model(PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features):
     train_loader = torch.utils.data.DataLoader(
-        shadow_train, batch_size=64, shuffle=True, num_workers=2)
+        shadow_train, batch_size=32, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(
-        shadow_test, batch_size=64, shuffle=True, num_workers=2)
+        shadow_test, batch_size=32, shuffle=True, num_workers=2)
 
     loss = nn.CrossEntropyLoss()
     optimizer = optim.SGD(shadow_model.parameters(), lr=1e-2, momentum=0.9, weight_decay=5e-4)
