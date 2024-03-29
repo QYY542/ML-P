@@ -24,7 +24,7 @@ def weights_init(m):
 
 class attack_for_blackbox():
     def __init__(self, SHADOW_PATH, TARGET_PATH, ATTACK_SETS, attack_train_loader, attack_test_loader, target_model,
-                 shadow_model, attack_model, device):
+                 shadow_model, attack_model, device, model_name, num_features):
         self.device = device
 
         self.TARGET_PATH = TARGET_PATH
@@ -50,7 +50,12 @@ class attack_for_blackbox():
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.attack_model.parameters(), lr=1e-5)
 
+        self.model_name = model_name
+        self.num_features = num_features
+
     def _get_data(self, model, inputs, targets):
+        if self.model_name == "ResNet":
+            inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
         result = model(inputs)
 
         output, _ = torch.sort(result, descending=True)
@@ -220,13 +225,13 @@ class attack_for_blackbox():
 
 # black shadow
 def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model,
-                 shadow_model, attack_model, get_attack_set, num_classes):
+                 shadow_model, attack_model, get_attack_set, model_name, num_features):
     MODELS_PATH = ATTACK_PATH + "_meminf_attack0.pth"
     RESULT_PATH = ATTACK_PATH + "_meminf_attack0.p"
     ATTACK_SETS = ATTACK_PATH + "_meminf_attack_mode0_"
 
     attack = attack_for_blackbox(SHADOW_PATH, TARGET_PATH, ATTACK_SETS, attack_trainloader, attack_testloader,
-                                 target_model, shadow_model, attack_model, device)
+                                 target_model, shadow_model, attack_model, device, model_name, num_features)
 
     if get_attack_set:
         attack.delete_pickle()
@@ -246,13 +251,13 @@ def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainload
 
 # black partial
 def attack_mode1(TARGET_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model, attack_model,
-                 get_attack_set, num_classes):
+                 get_attack_set, model_name, num_features):
     MODELS_PATH = ATTACK_PATH + "_meminf_attack1.pth"
     RESULT_PATH = ATTACK_PATH + "_meminf_attack1.p"
     ATTACK_SETS = ATTACK_PATH + "_meminf_attack_mode1_"
 
     attack = attack_for_blackbox(TARGET_PATH, TARGET_PATH, ATTACK_SETS, attack_trainloader, attack_testloader,
-                                 target_model, target_model, attack_model, device)
+                                 target_model, target_model, attack_model, device, model_name, num_features)
 
     if get_attack_set:
         attack.delete_pickle()

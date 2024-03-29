@@ -125,11 +125,11 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name, num_features)
     test_mia(TARGET_PATH, device, num_classes, selected_target_train, selected_target_test,
              selected_shadow_train, selected_shadow_test,
-             target_model, shadow_model, mode)
+             target_model, shadow_model, mode, model_name, num_features)
 
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-             shadow_model, mode):
+             shadow_model, mode, model_name, num_features):
     batch_size = 64
 
     # 获取攻击数据集
@@ -144,13 +144,13 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
         attack_model = ShadowAttackModel(num_classes)
         attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
                      attack_testloader,
-                     target_model, shadow_model, attack_model, 1, num_classes)
+                     target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
         attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader,
                      target_model,
-                     attack_model, 1, num_classes)
+                     attack_model, 1, model_name, num_features)
 
 
 def prepare_dataset(dataset_name, model_name):
@@ -244,7 +244,7 @@ def main():
     # 进行MIA评估
     if args.evaluate_type == 0:
         test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
-                 target_model, shadow_model, mode)
+                 target_model, shadow_model, mode, model_name, num_features)
     # 进行kmeans聚类研究
     elif args.evaluate_type == 1:
         test_kmeans(dataset_name, model_name, kmeans, mode)
