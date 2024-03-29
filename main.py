@@ -197,10 +197,12 @@ def prepare_dataset(dataset_name, model_name):
         print("MLP")
         target_model = DeepEmbeddingNetwork(num_features, num_classes)
         shadow_model = DeepEmbeddingNetwork(num_features, num_classes)
-    elif model_name == "CNN":
-        print("CNN")
-        target_model = CNN(num_features, num_classes)
-        shadow_model = CNN(num_features, num_classes)
+    elif model_name == "ResNet":
+        print("ResNet")
+        print(num_features)
+        print(num_classes)
+        target_model = ResNetModel(num_features, num_classes)
+        shadow_model = ResNetModel(num_features, num_classes)
 
     return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
 

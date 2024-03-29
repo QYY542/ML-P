@@ -150,35 +150,70 @@ class DeepEmbeddingNetwork(nn.Module):
         return x
 
 
-# CNN网络
-class CNN(nn.Module):
-    def __init__(self, num_features, num_classes):
-        super(CNN, self).__init__()
-        self.num_features_sqrt = int(num_features ** 0.5)
+# ResNet网络
+class Residual(nn.Module):
+    def __init__(self, input_channels, num_channels,
+                 use_1x1conv=False, strides=1):
+        super().__init__()
+        self.conv1 = nn.Conv1d(input_channels, num_channels,
+                               kernel_size=3, padding=1, stride=strides)
+        self.conv2 = nn.Conv1d(num_channels, num_channels,
+                               kernel_size=3, padding=1)
+        if use_1x1conv:
+            self.conv3 = nn.Conv1d(input_channels, num_channels,
+                                   kernel_size=1, stride=strides)
+        else:
+            self.conv3 = None
+        self.bn1 = nn.BatchNorm1d(num_channels)
+        self.bn2 = nn.BatchNorm1d(num_channels)
 
-        # 假设num_features可以开方，以便能将一维数据重塑成二维形式
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.pool = nn.MaxPool2d(2)
+    def forward(self, X):
+        Y = F.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        if self.conv3:
+            X = self.conv3(X)
+        Y += X
+        return F.relu(Y)
 
-        # 通过池化层后的大小计算
-        size_after_conv = self.num_features_sqrt // 2 // 2  # 两次池化
-        self.fc_input_size = size_after_conv * size_after_conv * 64
 
-        self.fc1 = nn.Linear(self.fc_input_size, 256)
-        self.dropout = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(256, num_classes)
+def resnet_block(input_channels, num_channels, num_residuals,
+                 first_block=False):
+    blk = []
+    for i in range(num_residuals):
+        if i == 0 and not first_block:
+            blk.append(Residual(input_channels, num_channels,
+                                use_1x1conv=True, strides=2))
+        else:
+            blk.append(Residual(num_channels, num_channels))
+    return blk
+
+
+b1 = nn.Sequential(nn.Conv1d(1, 64, kernel_size=7, stride=2, padding=3),
+                   nn.BatchNorm1d(64), nn.ReLU(),
+                   nn.MaxPool1d(kernel_size=3, stride=2, padding=1))
+
+b2 = nn.Sequential(*resnet_block(64, 64, 2, first_block=True))
+b3 = nn.Sequential(*resnet_block(64, 128, 2))
+b4 = nn.Sequential(*resnet_block(128, 256, 2))
+b5 = nn.Sequential(*resnet_block(256, 512, 2))
+
+
+class ResNetModel(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(ResNetModel, self).__init__()
+
+        self.res = nn.Sequential(
+            b1, b2, b3, b4, b5,
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(),
+            nn.Linear(512, 512), nn.ReLU(),
+            nn.Linear(512, 64), nn.ReLU(),
+            nn.Linear(64, num_classes)
+        )
+        # 定义全连接层，将 Transformer 编码器的输出映射到分类空间
+        # self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
-        x = x.view(-1, 1, self.num_features_sqrt, self.num_features_sqrt)  # 调整形状以匹配卷积层
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = self.pool(x)
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
-        x = x.view(-1, self.fc_input_size)  # 展平
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
+        x = self.res(x)
         return x
+
