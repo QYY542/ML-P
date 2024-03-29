@@ -56,7 +56,7 @@ def test_QID(dataset_name):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
 
-def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
+def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, num_features):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
@@ -88,7 +88,8 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset = evaluator.get_specific_datasets_and_distances(
+        n)
 
     if selected_dataset_name == "min":
         selected_dataset = min_dataset
@@ -122,8 +123,8 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         target_model = CNN(num_features, num_classes)
         shadow_model = CNN(num_features, num_classes)
 
-    train_target_model(TARGET_PATH, device, selected_target_train, selected_target_test, target_model)
-    train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model)
+    train_target_model(TARGET_PATH, device, selected_target_train, selected_target_test, target_model, model_name, num_features)
+    train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name, num_features)
     test_mia(TARGET_PATH, device, num_classes, selected_target_train, selected_target_test,
              selected_shadow_train, selected_shadow_test,
              target_model, shadow_model, mode)
@@ -204,7 +205,7 @@ def prepare_dataset(dataset_name, model_name):
         target_model = ResNetModel(num_features, num_classes)
         shadow_model = ResNetModel(num_features, num_classes)
 
-    return num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
+    return num_classes, num_features, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model
 
 
 def main():
@@ -234,16 +235,16 @@ def main():
     TARGET_PATH = TARGET_ROOT + dataset_name + model_name
 
     # 获得目标数据集、影子数据集、目标模型、影子模型
-    num_classes, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(
+    num_classes, num_features, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(
         dataset_name, model_name)
 
     # 训练目标模型
     if args.train_target:
-        train_target_model(TARGET_PATH, device, target_train, target_test, target_model)
+        train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
 
     # 训练影子模型
     if args.train_shadow:
-        train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model)
+        train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
 
     # ----- 进行隐私风险评估 ----- #
     # 进行MIA评估

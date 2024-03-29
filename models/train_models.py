@@ -6,14 +6,17 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 from torch.optim import lr_scheduler
+from torch.utils.data import Dataset
 
 
 class target_model_training():
-    def __init__(self, trainloader, testloader, model, device):
+    def __init__(self, trainloader, testloader, model, device, num_features, model_name):
         self.device = device
         self.net = model.to(self.device)
         self.trainloader = trainloader
         self.testloader = testloader
+        self.num_features = num_features
+        self.model_name = model_name
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(self.net.parameters(), lr=1e-2, momentum=0.9, weight_decay=5e-4)
@@ -23,19 +26,22 @@ class target_model_training():
     # Training
     def train(self):
         self.net.train()
-        
+
         train_loss = 0
         correct = 0
         total = 0
-        
+
         for batch_idx, (inputs, targets) in enumerate(self.trainloader):
             if isinstance(targets, list):
                 targets = targets[0]
 
             if str(self.criterion) != "CrossEntropyLoss()":
                 targets = torch.from_numpy(np.eye(self.num_classes)[targets]).float()
-             
+
             inputs, targets = inputs.to(self.device), targets.to(self.device)
+            # 对ResNet特殊处理
+            if self.model_name == "ResNet":
+                inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
             self.optimizer.zero_grad()
             outputs = self.net(inputs)
 
@@ -47,16 +53,16 @@ class target_model_training():
             _, predicted = outputs.max(1)
             total += targets.size(0)
             if str(self.criterion) != "CrossEntropyLoss()":
-                _, targets= targets.max(1)
+                _, targets = targets.max(1)
 
             correct += predicted.eq(targets).sum().item()
-                
+
         self.scheduler.step()
 
-        print( 'Train Acc: %.3f%% (%d/%d) | Loss: %.3f' % (100.*correct/total, correct, total, 1.*train_loss/batch_idx))
+        print('Train Acc: %.3f%% (%d/%d) | Loss: %.3f' % (
+            100. * correct / total, correct, total, 1. * train_loss / batch_idx))
 
-        return 1.*correct/total
-
+        return 1. * correct / total
 
     def saveModel(self, path):
         torch.save(self.net.state_dict(), path)
@@ -74,6 +80,9 @@ class target_model_training():
                     targets = torch.from_numpy(np.eye(self.num_classes)[targets]).float()
 
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
+                # 对ResNet特殊处理
+                if self.model_name == "ResNet":
+                    inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
                 outputs = self.net(inputs)
 
                 loss = self.criterion(outputs, targets)
@@ -82,22 +91,22 @@ class target_model_training():
                 _, predicted = outputs.max(1)
                 total += targets.size(0)
                 if str(self.criterion) != "CrossEntropyLoss()":
-                    _, targets= targets.max(1)
+                    _, targets = targets.max(1)
 
                 correct += predicted.eq(targets).sum().item()
 
-            print( 'Test Acc: %.3f%% (%d/%d)' % (100.*correct/total, correct, total))
+            print('Test Acc: %.3f%% (%d/%d)' % (100. * correct / total, correct, total))
 
-        return 1.*correct/total
+        return 1. * correct / total
 
 
-def train_target_model(PATH, device, train_set, test_set, model):
+def train_target_model(PATH, device, train_set, test_set, model, model_name, num_features):
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=128, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(
         test_set, batch_size=128, shuffle=True, num_workers=2)
 
-    model = target_model_training(train_loader, test_loader, model, device)
+    model = target_model_training(train_loader, test_loader, model, device, num_features, model_name)
     acc_train = 0
     acc_test = 0
 
@@ -121,11 +130,13 @@ def train_target_model(PATH, device, train_set, test_set, model):
 
 
 class shadow_model_training():
-    def __init__(self, trainloader, testloader, model, device, loss, optimizer):
+    def __init__(self, trainloader, testloader, model, device, loss, optimizer, num_features, model_name):
         self.device = device
         self.model = model.to(self.device)
         self.trainloader = trainloader
         self.testloader = testloader
+        self.num_features = num_features
+        self.model_name = model_name
 
         self.criterion = loss
         self.optimizer = optimizer
@@ -142,7 +153,9 @@ class shadow_model_training():
 
         for batch_idx, (inputs, targets) in enumerate(self.trainloader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
-
+            # 对ResNet特殊处理
+            if self.model_name == "ResNet":
+                inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
 
@@ -158,7 +171,7 @@ class shadow_model_training():
         self.scheduler.step()
 
         print('Train Acc: %.3f%% (%d/%d) | Loss: %.3f' % (
-        100. * correct / total, correct, total, 1. * train_loss / batch_idx))
+            100. * correct / total, correct, total, 1. * train_loss / batch_idx))
 
         return 1. * correct / total
 
@@ -173,6 +186,9 @@ class shadow_model_training():
         with torch.no_grad():
             for inputs, targets in self.testloader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
+                # 对ResNet特殊处理
+                if self.model_name == "ResNet":
+                    inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
                 outputs = self.model(inputs)
 
                 loss = self.criterion(outputs, targets)
@@ -186,7 +202,8 @@ class shadow_model_training():
 
         return 1. * correct / total
 
-def train_shadow_model(PATH, device, shadow_train, shadow_test, shadow_model):
+
+def train_shadow_model(PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features):
     train_loader = torch.utils.data.DataLoader(
         shadow_train, batch_size=64, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(
@@ -195,7 +212,8 @@ def train_shadow_model(PATH, device, shadow_train, shadow_test, shadow_model):
     loss = nn.CrossEntropyLoss()
     optimizer = optim.SGD(shadow_model.parameters(), lr=1e-2, momentum=0.9, weight_decay=5e-4)
 
-    model = shadow_model_training(train_loader, test_loader, shadow_model, device, loss, optimizer)
+    model = shadow_model_training(train_loader, test_loader, shadow_model, device, loss, optimizer, num_features,
+                                  model_name)
     acc_train = 0
     acc_test = 0
 
