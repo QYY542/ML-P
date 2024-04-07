@@ -79,7 +79,7 @@ class HDBSCANDataset:
 
     def calculate_min_cluster_size(self):
         standard_size = 10000  # 标准大小
-        base_min_cluster_size = 5  # 基础的min_cluster_size值
+        base_min_cluster_size = 10  # 基础的min_cluster_size值
 
         # 获取数据集的大小和特征数
         data_size = len(self.dataset)
