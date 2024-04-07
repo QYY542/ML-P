@@ -37,9 +37,8 @@ class HDBSCANDataset:
         high_scores_values = scores[high_scores_indices]
         low_scores_values = scores[low_scores_indices]
 
-        print("属于聚类程度最低的样本分数:", low_scores_values)
         print("属于聚类程度最高的样本分数:", high_scores_values)
-
+        print("属于聚类程度最低的样本分数:", low_scores_values)
 
         # 根据索引创建数据子集
         high_score_dataset = Subset(self.dataset, high_scores_indices)
@@ -56,7 +55,7 @@ class HDBSCANDataset:
         test_indices = np.random.choice(remaining_indices, n, replace=False)
         test_dataset = Subset(self.dataset, test_indices)
 
-        return low_score_dataset, high_score_dataset, random_dataset, test_dataset, random_dataset_shadow
+        return high_score_dataset, low_score_dataset, random_dataset, test_dataset, random_dataset_shadow
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
