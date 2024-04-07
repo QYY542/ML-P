@@ -151,7 +151,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
 
 
-    attack_model_path = TARGET_PATH + '_meminf_attack0.pth'
+    attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
     test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
     test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
