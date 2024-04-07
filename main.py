@@ -134,9 +134,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
                            num_features)
 
     # 训练攻击模型+生成测试数据集
-    test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
-             shadow_train, shadow_test,
-             target_model, shadow_model, mode, model_name, num_features, "_min")
+    # test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
+    #          shadow_train, shadow_test,
+    #          target_model, shadow_model, mode, model_name, num_features, "_min")
     test_mia(TARGET_PATH, device, num_classes, target_train_max, target_test_max,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_max")
