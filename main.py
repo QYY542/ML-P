@@ -93,17 +93,17 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     each_length = n // 2
 
     target_train_min, target_test_min = torch.utils.data.random_split(
-        min_dataset, [each_length, each_length]
+        random_dataset_shadow, [each_length, each_length]
     )
     target_train_max, target_test_max = torch.utils.data.random_split(
         max_dataset, [each_length, each_length]
     )
     target_train_random, target_test_random = torch.utils.data.random_split(
-        random_dataset_shadow, [each_length, each_length]
+        random_dataset, [each_length, each_length]
     )
 
     shadow_train, shadow_test = torch.utils.data.random_split(
-        random_dataset, [each_length, each_length]
+        random_dataset_shadow, [each_length, each_length]
     )
 
     # 获取模型并且评估
@@ -147,12 +147,12 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     attack_min_model_path = TARGET_PATH + '_min' + '_meminf_attack0.pth'
     attack_max_model_path = TARGET_PATH + '_max' + '_meminf_attack0.pth'
     attack_random_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
+    attack_model_path = attack_random_model_path
 
     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
     test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
     test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
 
-    attack_model_path = attack_random_model_path
     result_path = './dataloader/trained_model/attack_results.p'
     print("========MIN_dataset========")
     evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
