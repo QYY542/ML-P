@@ -133,7 +133,12 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
                            num_features)
 
-    # 训练攻击模型+生成测试数据集
+    # 训练攻击模型
+    test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
+             shadow_train, shadow_test,
+             target_model, shadow_model, mode, model_name, num_features, "")
+
+    # 生成测试数据集
     test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_min")
@@ -143,9 +148,8 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_random")
-    test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
-             shadow_train, shadow_test,
-             target_model, shadow_model, mode, model_name, num_features, "")
+
+
 
     attack_model_path = TARGET_PATH + '_meminf_attack0.pth'
     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'

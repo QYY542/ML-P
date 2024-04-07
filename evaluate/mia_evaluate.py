@@ -243,8 +243,8 @@ def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainload
             res_train = attack.train(flag, RESULT_PATH)
             res_test = attack.test(flag, RESULT_PATH)
 
-    attack.saveModel(MODELS_PATH)
-    print("Saved Attack Model")
+        attack.saveModel(MODELS_PATH)
+        print("Saved Attack Model")
 
     return res_train, res_test
 
