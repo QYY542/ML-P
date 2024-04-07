@@ -286,6 +286,7 @@ def main():
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
+    parser.add_argument('--kmeans', action='store_true')
     args = parser.parse_args()
 
     # 处理从命令行获得的参数
@@ -305,11 +306,11 @@ def main():
         dataset_name, model_name)
 
     # 训练目标模型
-    if args.train_target & (kmeans == 'none'):
+    if args.train_target and not args.kmeans:
         train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
 
     # 训练影子模型
-    if args.train_shadow & (kmeans == 'none'):
+    if args.train_shadow and not args.kmeans:
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
 
     # ----- 进行隐私风险评估 ----- #
