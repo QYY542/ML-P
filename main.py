@@ -89,24 +89,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
     min_dataset, max_dataset, random_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
-
-    # if selected_dataset_name == "min":
-    #     selected_dataset = min_dataset
-    # elif selected_dataset_name == "max":
-    #     selected_dataset = max_dataset
-    # elif selected_dataset_name == "random":
-    #     selected_dataset = random_dataset
-
-    # 对selected_dataset数据集进行分析
-    # selected_length = len(selected_dataset)
-    # each_selected_length = selected_length // 2
-    # num_features = next(iter(selected_dataset))[0].shape[0]
-    #
-    # selected_target_train = selected_dataset
     num_features = next(iter(dataset))[0].shape[0]
+    each_length = n // 2
 
-    length = len(random_dataset)
-    each_length = length // 2
     target_train_min, target_test_min = torch.utils.data.random_split(
         min_dataset, [each_length, each_length]
     )
@@ -117,8 +102,6 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         random_dataset, [each_length, each_length]
     )
 
-    # length = len(random_dataset_shadow)
-    # each_length = length // 2
     shadow_train, shadow_test = torch.utils.data.random_split(
         random_dataset_shadow, [each_length, each_length]
     )
@@ -136,20 +119,21 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         shadow_model = ResNetModel(num_features, num_classes)
 
     if train_target:
-        # StudentMLP_min_target.pth
+        # _min_target.pth
         train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
                            num_features)
-        # StudentMLP_max_target.pth
+        # _max_target.pth
         train_target_model(TARGET_PATH + "_max", device, target_train_max, target_test_max, target_model, model_name,
                            num_features)
-        # StudentMLP_random_target.pth
+        # _random_target.pth
         train_target_model(TARGET_PATH + "_random", device, target_train_random, target_test_random, target_model,
                            model_name, num_features)
     if train_shadow:
-        # StudentMLP_shadow.pth
+        # _shadow.pth
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
                            num_features)
 
+    # 训练攻击模型+生成测试数据集
     test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_min")
@@ -159,14 +143,16 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_random")
+
     attack_min_model_path = TARGET_PATH + '_min' + '_meminf_attack0.pth'
     attack_max_model_path = TARGET_PATH + '_max' + '_meminf_attack0.pth'
     attack_random_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
+
     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
     test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
     test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
 
-    attack_model_path = attack_max_model_path
+    attack_model_path = attack_random_model_path
     result_path = './dataloader/trained_model/attack_results.p'
     print("========MIN_dataset========")
     evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
@@ -174,32 +160,6 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     evaluate_attack_model(attack_model_path, test_max_set_path, result_path, num_classes, 1)
     print("========RANDOM_dataset========")
     evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
-
-
-def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-                    shadow_model, mode, model_name, num_features, kmeans_mode=""):
-    batch_size = 64
-
-    # 获取攻击数据集
-    if mode == 0:
-        attack_trainloader, attack_testloader = get_attack_dataset_with_shadow(
-            target_train, target_test, shadow_train, shadow_test, batch_size)
-    else:
-        attack_trainloader, attack_testloader = get_attack_dataset_without_shadow(target_train, target_test, batch_size)
-
-    # 进行MIA评估 黑盒+Shadow辅助数据集
-    if mode == 0:
-        attack_model = ShadowAttackModel(num_classes)
-        attack_mode_0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
-                      attack_trainloader,
-                      attack_testloader,
-                      target_model, shadow_model, attack_model, 1, model_name, num_features)
-    # 进行MIA评估 黑盒+Partial辅助数据集
-    elif mode == 1:
-        attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader,
-                     target_model,
-                     attack_model, 1, model_name, num_features)
 
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
