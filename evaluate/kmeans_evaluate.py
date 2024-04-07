@@ -7,8 +7,9 @@ from sklearn.preprocessing import StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 
-from evaluate.mia_evaluate import attack_for_blackbox
-from models.define_models import ShadowAttackModel
+from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
+from evaluate.mia_evaluate import attack_for_blackbox, attack_mode0, attack_mode1
+from models.define_models import ShadowAttackModel, PartialAttackModel
 
 
 class KmeansDataset:
@@ -157,3 +158,77 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
 
     final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
     return final_result
+
+def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
+             shadow_model, mode, model_name, num_features, kmeans_mode=""):
+
+
+    # 进行MIA评估 黑盒+Shadow辅助数据集
+    if mode == 0:
+        attack_model = ShadowAttackModel(num_classes)
+        attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+                     attack_trainloader,
+                     attack_testloader,
+                     target_model, shadow_model, attack_model, 1, model_name, num_features)
+    # 进行MIA评估 黑盒+Partial辅助数据集
+    elif mode == 1:
+        attack_model = PartialAttackModel(num_classes)
+        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+                     attack_testloader,
+                     target_model,
+                     attack_model, 1, model_name, num_features)
+
+def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max, target_train_random, target_test_random, shadow_train, shadow_test, batch_size = 64):
+    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max, mem_test_random, nonmem_test_random = list(shadow_train), list(shadow_test), list(target_train_min), list(
+        target_test_min), list(target_train_max), list(target_test_max), list(target_train_random), list(target_test_random)
+
+    for i in range(len(mem_train)):
+        mem_train[i] = mem_train[i] + (1,)
+    for i in range(len(nonmem_train)):
+        nonmem_train[i] = nonmem_train[i] + (0,)
+
+    for i in range(len(nonmem_test_min)):
+        nonmem_test_min[i] = nonmem_test_min[i] + (0,)
+    for i in range(len(mem_test_min)):
+        mem_test_min[i] = mem_test_min[i] + (1,)
+
+    for i in range(len(nonmem_test_max)):
+        nonmem_test_max[i] = nonmem_test_max[i] + (0,)
+    for i in range(len(mem_test_max)):
+        mem_test_max[i] = mem_test_max[i] + (1,)
+
+    for i in range(len(nonmem_test_random)):
+        nonmem_test_random[i] = nonmem_test_random[i] + (0,)
+    for i in range(len(mem_test_random)):
+        mem_test_random[i] = mem_test_random[i] + (1,)
+
+    train_length = min(len(mem_train), len(nonmem_train))
+    test_length = min(len(mem_test_min), len(nonmem_test_min))
+
+    mem_train, _ = torch.utils.data.random_split(mem_train, [train_length, len(mem_train) - train_length])
+    non_mem_train, _ = torch.utils.data.random_split(nonmem_train, [train_length, len(nonmem_train) - train_length])
+
+    mem_test_min, _ = torch.utils.data.random_split(mem_test_min, [test_length, len(mem_test_min) - test_length])
+    non_mem_test_min, _ = torch.utils.data.random_split(nonmem_test_min, [test_length, len(nonmem_test_min) - test_length])
+
+    mem_test_max, _ = torch.utils.data.random_split(mem_test_max, [test_length, len(mem_test_max) - test_length])
+    non_mem_test_max, _ = torch.utils.data.random_split(nonmem_test_max, [test_length, len(nonmem_test_max) - test_length])
+
+    mem_test_random, _ = torch.utils.data.random_split(mem_test_random, [test_length, len(mem_test_random) - test_length])
+    non_mem_test_random, _ = torch.utils.data.random_split(nonmem_test_random, [test_length, len(nonmem_test_random) - test_length])
+
+    attack_train = mem_train + non_mem_train
+    attack_test_min = mem_test_min + non_mem_test_min
+    attack_test_max = mem_test_max + non_mem_test_max
+    attack_test_random = mem_test_random + non_mem_test_random
+
+    attack_trainloader = torch.utils.data.DataLoader(
+        attack_train, batch_size=batch_size, shuffle=True, num_workers=2)
+    attack_min_testloader = torch.utils.data.DataLoader(
+        attack_test_min, batch_size=batch_size, shuffle=True, num_workers=2)
+    attack_max_testloader = torch.utils.data.DataLoader(
+        attack_test_max, batch_size=batch_size, shuffle=True, num_workers=2)
+    attack_random_testloader = torch.utils.data.DataLoader(
+        attack_test_random, batch_size=batch_size, shuffle=True, num_workers=2)
+
+    return attack_trainloader, attack_min_testloader, attack_max_testloader, attack_random_testloader

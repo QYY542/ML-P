@@ -1,6 +1,7 @@
 import argparse
 
-from evaluate.kmeans_evaluate import KmeansDataset, evaluate_attack_model
+from evaluate.kmeans_evaluate import KmeansDataset, evaluate_attack_model, test_kmeans_mia, \
+    get_attack_dataset_with_shadow_kmeans
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
@@ -133,15 +134,20 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
                            num_features)
 
-    # 生成测试数据集
-    test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
-             shadow_train, shadow_test,
+    # 生成测试数据集+训练攻击模型
+    attack_trainloader, attack_min_testloader, attack_max_testloader, attack_random_testloader = get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max,
+                                          target_train_random, target_test_random, shadow_train, shadow_test,batch_size=64)
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_min_testloader,
              target_model, shadow_model, mode, model_name, num_features, "_min")
-    test_mia(TARGET_PATH, device, num_classes, target_train_max, target_test_max,
-             shadow_train, shadow_test,
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_max_testloader,
              target_model, shadow_model, mode, model_name, num_features, "_max")
-    test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
-             shadow_train, shadow_test,
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_random_testloader,
              target_model, shadow_model, mode, model_name, num_features, "_random")
 
     attack_model_path = ''
