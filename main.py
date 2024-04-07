@@ -104,7 +104,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
     # num_features = next(iter(selected_dataset))[0].shape[0]
     #
     # selected_target_train = selected_dataset
-    num_features = next(iter(min_dataset))[0].shape[0]
+    num_features = next(iter(dataset))[0].shape[0]
 
     selected_target_test = test_dataset
 
