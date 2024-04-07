@@ -126,32 +126,6 @@ class MLP(nn.Module):
         return x
 
 
-# 深度嵌入网络
-class DeepEmbeddingNetwork(nn.Module):
-    def __init__(self, category_sizes, n_numerical_features, embedding_size, num_classes):
-        super(DeepEmbeddingNetwork, self).__init__()
-        self.embeddings = nn.ModuleList([nn.Embedding(categories, embedding_size) for categories in category_sizes])
-        total_embedding_size = embedding_size * len(category_sizes)
-        self.fc1 = nn.Linear(n_numerical_features + total_embedding_size, 256)
-        self.bn1 = nn.BatchNorm1d(256)
-        self.dropout1 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(256, 128)
-        self.bn2 = nn.BatchNorm1d(128)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc3 = nn.Linear(128, num_classes)
-
-    def forward(self, x_categorical, x_numerical):
-        embeddings = [embedding(x_categorical[:, i]) for i, embedding in enumerate(self.embeddings)]
-        x_categorical = torch.cat(embeddings, 1)
-        x = torch.cat([x_numerical, x_categorical], 1)
-        x = F.relu(self.bn1(self.fc1(x)))
-        x = self.dropout1(x)
-        x = F.relu(self.bn2(self.fc2(x)))
-        x = self.dropout2(x)
-        x = self.fc3(x)
-        return x
-
-
 # ResNet网络
 class Residual(nn.Module):
     def __init__(self, input_channels, num_channels, use_1x1conv=False, strides=1, dropout_rate=0.5):

@@ -15,7 +15,8 @@ class KmeansDataset:
     def __init__(self, dataset):
         self.dataset = dataset
 
-    def compute_kmeans_distance(self, n_clusters=5):
+    def compute_kmeans_distance(self):
+        n_clusters = self.elbow_method()  # 使用肘部方法确定最佳聚类数
         X_scaled = self.load_and_scale_data()
 
         # 训练k-means模型
@@ -65,6 +66,27 @@ class KmeansDataset:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
+
+    def elbow_method(self, max_clusters=50):
+        X_scaled = self.load_and_scale_data()
+        sse = []
+        for n_clusters in range(1, max_clusters + 1):
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            kmeans.fit(X_scaled)
+            sse.append(kmeans.inertia_)  # inertia_是模型的SSE
+
+        # 寻找肘部点
+        k_optimal = self.find_elbow_point(sse)
+        return k_optimal
+
+    def find_elbow_point(self, sse):
+        # 这里简化处理，返回SSE下降变缓的第一个点作为肘部
+        # 更复杂的实现可能需要计算曲率等
+        for i in range(1, len(sse) - 1):
+            if (sse[i] - sse[i + 1]) < (sse[i - 1] - sse[i]) / 2:
+                return i + 1
+        return len(sse)  # 如果没有找到明显的肘点，返回最大聚类数
+
 
 
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
