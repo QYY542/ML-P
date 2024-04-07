@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder, MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 import torch
 import torch.nn as nn
@@ -34,7 +34,8 @@ class Adult(Dataset):
         target = df['income'].values
 
         # 对数值特征进行标准化
-        scaler = StandardScaler()
+        # scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X_scaled = scaler.fit_transform(X)
 
         # 加载数据

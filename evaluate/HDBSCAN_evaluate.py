@@ -37,8 +37,9 @@ class HDBSCANDataset:
         high_scores_values = scores[high_scores_indices]
         low_scores_values = scores[low_scores_indices]
 
-        print("属于聚类程度最高的样本分数:", high_scores_values)
         print("属于聚类程度最低的样本分数:", low_scores_values)
+        print("属于聚类程度最高的样本分数:", high_scores_values)
+
 
         # 根据索引创建数据子集
         high_score_dataset = Subset(self.dataset, high_scores_indices)

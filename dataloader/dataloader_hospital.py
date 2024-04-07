@@ -7,7 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from torch.utils.data import Dataset
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder, MinMaxScaler
 
 
 class Hospital(Dataset):
@@ -48,7 +48,8 @@ class Hospital(Dataset):
 
         # 对数值特征进行标准化
         numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
-        scaler = StandardScaler()
+        # scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X[numeric_features] = scaler.fit_transform(X[numeric_features])
 
         # 将处理后的特征转换为适用于PyTorch的格式

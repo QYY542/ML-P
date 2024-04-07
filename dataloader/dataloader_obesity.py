@@ -10,7 +10,8 @@ from models.define_models import  MLP
 
 import torch
 from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
+
 
 class Obesity(Dataset):
     def __init__(self,root = './dataloader/datasets/obesity/') -> None:
@@ -40,7 +41,8 @@ class Obesity(Dataset):
         numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
 
         # numeric_features = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
-        scaler = StandardScaler()
+        # scaler = StandardScaler()
+        scaler = MinMaxScaler()
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
         # 标签进行标签编码

@@ -10,7 +10,7 @@ from models.define_models import MLP
 
 import torch
 from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Student(Dataset):
@@ -28,8 +28,10 @@ class Student(Dataset):
 
         # 数值特征进行标准化
         numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
-        scaler = StandardScaler()
+        # scaler = StandardScaler()
+        scaler = MinMaxScaler()
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
+
 
         # 标签进行编码
         self.target_encoder = LabelEncoder()
