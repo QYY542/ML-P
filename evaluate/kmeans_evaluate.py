@@ -60,15 +60,7 @@ class KmeansDataset:
         random_indices_shadow = np.random.choice(remaining_indices, n, replace=False)
         random_dataset_shadow = Subset(self.dataset, random_indices_shadow)
 
-        # 更新排除列表，现在包括random_dataset_shadow的索引
-        excluded_indices.update(random_indices_shadow)
-        remaining_indices = list(all_indices - excluded_indices)
-
-        # 从更新后的剩余索引中选择test_dataset
-        test_indices = np.random.choice(remaining_indices, n, replace=False)
-        test_dataset = Subset(self.dataset, test_indices)
-
-        return min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset
+        return min_dataset, max_dataset, random_dataset, random_dataset_shadow
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)

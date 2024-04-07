@@ -83,12 +83,12 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
 
     # 取前三分之一样本的数据
+    # 这个数据和train_target_model中的batch_size有关
     n = 400
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset = evaluator.get_specific_datasets_and_distances(
-        n)
+    min_dataset, max_dataset, random_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
 
     # if selected_dataset_name == "min":
     #     selected_dataset = min_dataset
@@ -105,10 +105,23 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
     # selected_target_train = selected_dataset
     num_features = next(iter(dataset))[0].shape[0]
 
-    selected_target_test = test_dataset
+    length = len(random_dataset)
+    each_length = length // 2
+    target_train_min, target_test_min = torch.utils.data.random_split(
+        min_dataset, [each_length, each_length]
+    )
+    target_train_max, target_test_max = torch.utils.data.random_split(
+        max_dataset, [each_length, each_length]
+    )
+    target_train_random, target_test_random = torch.utils.data.random_split(
+        random_dataset, [each_length, each_length]
+    )
 
-    selected_shadow_train = random_dataset_shadow
-    selected_shadow_test = random_dataset
+    # length = len(random_dataset_shadow)
+    # each_length = length // 2
+    shadow_train, shadow_test = torch.utils.data.random_split(
+        random_dataset_shadow, [each_length, each_length]
+    )
 
     # 获取模型并且评估
     if model_name == "MLP":
@@ -124,28 +137,28 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
 
     if train_target:
         # StudentMLP_min_target.pth
-        train_target_model(TARGET_PATH + "_min", device, min_dataset, selected_target_test, target_model, model_name,
+        train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
                            num_features)
         # StudentMLP_max_target.pth
-        train_target_model(TARGET_PATH + "_max", device, max_dataset, selected_target_test, target_model, model_name,
+        train_target_model(TARGET_PATH + "_max", device, target_train_max, target_test_max, target_model, model_name,
                            num_features)
         # StudentMLP_random_target.pth
-        train_target_model(TARGET_PATH + "_random", device, random_dataset, selected_target_test, target_model,
+        train_target_model(TARGET_PATH + "_random", device, target_train_random, target_test_random, target_model,
                            model_name, num_features)
     if train_shadow:
         # StudentMLP_shadow.pth
-        train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name,
+        train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
                            num_features)
 
-    # test_mia_kmeans(TARGET_PATH, device, num_classes, min_dataset, selected_target_test,
-    #                 selected_shadow_train, selected_shadow_test,
-    #                 target_model, shadow_model, mode, model_name, num_features,"_min")
-    # test_mia_kmeans(TARGET_PATH, device, num_classes, max_dataset, selected_target_test,
-    #                 selected_shadow_train, selected_shadow_test,
-    #                 target_model, shadow_model, mode, model_name, num_features,"_max")
-    # test_mia_kmeans(TARGET_PATH, device, num_classes, random_dataset, selected_target_test,
-    #                 selected_shadow_train, selected_shadow_test,
-    #                 target_model, shadow_model, mode, model_name, num_features,"_random")
+    test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
+             shadow_train, shadow_test,
+             target_model, shadow_model, mode, model_name, num_features, "_min")
+    test_mia(TARGET_PATH, device, num_classes, target_train_max, target_test_max,
+             shadow_train, shadow_test,
+             target_model, shadow_model, mode, model_name, num_features, "_max")
+    test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
+             shadow_train, shadow_test,
+             target_model, shadow_model, mode, model_name, num_features, "_random")
     attack_min_model_path = TARGET_PATH + '_min' + '_meminf_attack0.pth'
     attack_max_model_path = TARGET_PATH + '_max' + '_meminf_attack0.pth'
     attack_random_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
@@ -164,7 +177,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
 
 
 def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-                    shadow_model, mode, model_name, num_features, kmeans_mode):
+                    shadow_model, mode, model_name, num_features, kmeans_mode=""):
     batch_size = 64
 
     # 获取攻击数据集
@@ -177,7 +190,8 @@ def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode_0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device, attack_trainloader,
+        attack_mode_0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+                      attack_trainloader,
                       attack_testloader,
                       target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
@@ -189,7 +203,7 @@ def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow
 
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-             shadow_model, mode, model_name, num_features):
+             shadow_model, mode, model_name, num_features, kmeans_mode=""):
     batch_size = 64
 
     # 获取攻击数据集
@@ -202,7 +216,8 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
+        attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+                     attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
