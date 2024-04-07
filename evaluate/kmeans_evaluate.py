@@ -38,27 +38,27 @@ class KmeansDataset:
         min_indices = np.argsort(min_distances)[:n]
         max_indices = np.argsort(min_distances)[-n:]
         random_indices = np.random.choice(len(self.dataset), n, replace=False)
+        test_indices = np.random.choice(len(self.dataset), n, replace=False)
         random_shadow_indices = np.random.choice(len(self.dataset), n, replace=False)
 
         # 获取对应的聚类距离
         min_distances_values = min_distances[min_indices]
         max_distances_values = min_distances[max_indices]
-        random_distances_values = min_distances[random_indices]
-        random_shadow_distances_values = min_distances[random_shadow_indices]
+
 
         # 打印聚类距离
         print("聚类距离最小的样本距离:", min_distances_values)
         print("聚类距离最大的样本距离:", max_distances_values)
-        print("随机选取的样本距离:", random_distances_values)
-        print("随机选取影子的样本距离:", random_shadow_distances_values)
+
 
         # 根据索引创建数据子集
         min_dataset = Subset(self.dataset, min_indices)
         max_dataset = Subset(self.dataset, max_indices)
         random_dataset = Subset(self.dataset, random_indices)
+        test_dataset = Subset(self.dataset, test_indices)
         random_dataset_shadow = Subset(self.dataset, random_shadow_indices)
 
-        return min_dataset, max_dataset, random_dataset, random_dataset_shadow
+        return min_dataset, max_dataset, random_dataset, test_dataset, random_dataset_shadow
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)

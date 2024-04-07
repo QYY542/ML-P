@@ -89,7 +89,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
-    min_dataset, max_dataset, random_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, random_dataset, test_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
     num_features = next(iter(dataset))[0].shape[0]
     each_length = n // 2
 
@@ -102,9 +102,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     # target_train_random, target_test_random = torch.utils.data.random_split(
     #     random_dataset, [each_length, each_length]
     # )
-    target_train_min, target_test_min = min_dataset, random_dataset
-    target_train_max, target_test_max = max_dataset, random_dataset
-    target_train_random, target_test_random = random_dataset, random_dataset
+    target_train_min, target_test_min = min_dataset, test_dataset
+    target_train_max, target_test_max = max_dataset, test_dataset
+    target_train_random, target_test_random = random_dataset, test_dataset
 
     shadow_train, shadow_test = torch.utils.data.random_split(
         random_dataset_shadow, [each_length, each_length]
