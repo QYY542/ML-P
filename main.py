@@ -133,11 +133,6 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
                            num_features)
 
-    # 训练攻击模型
-    test_mia(TARGET_PATH, device, num_classes, target_train_random, target_test_random,
-             shadow_train, shadow_test,
-             target_model, shadow_model, mode, model_name, num_features, "")
-
     # 生成测试数据集
     test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
              shadow_train, shadow_test,
@@ -182,7 +177,7 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
         attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
                      attack_trainloader,
                      attack_testloader,
-                     target_model, shadow_model, attack_model, 1, model_name, num_features, kmeans_mode)
+                     target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
