@@ -102,14 +102,14 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     # target_train_random, target_test_random = torch.utils.data.random_split(
     #     random_dataset, [each_length, each_length]
     # )
+    # shadow_train, shadow_test = torch.utils.data.random_split(
+    #     random_dataset_shadow, [each_length, each_length]
+    # )
     target_train_min, target_test_min = min_dataset, test_dataset
     target_train_max, target_test_max = max_dataset, test_dataset
     target_train_random, target_test_random = random_dataset, test_dataset
 
-    shadow_train, shadow_test = torch.utils.data.random_split(
-        random_dataset_shadow, [each_length, each_length]
-    )
-
+    shadow_train, shadow_test = random_dataset_shadow, random_dataset
     # 获取模型并且评估
     if model_name == "MLP":
         print("MLP")
