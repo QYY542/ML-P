@@ -426,7 +426,7 @@ def main():
         test_QID(dataset_name)
     # 进行HDBSCAN聚类研究
     elif args.evaluate_type == 3:
-        test_HDBSCAN(dataset_name)
+        test_HDBSCAN(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
 
 
 
