@@ -14,7 +14,7 @@ class HDBSCANDataset:
         print("min_cluster_size = ", self.min_cluster_size)
 
         # 使用HDBSCAN进行聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=5, gen_min_span_tree=True)
         clusterer.fit(X_scaled)
         labels = clusterer.labels_
 
