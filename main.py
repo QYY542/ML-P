@@ -99,7 +99,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         max_dataset, [each_length, each_length]
     )
     target_train_random, target_test_random = torch.utils.data.random_split(
-        random_dataset, [each_length, each_length]
+        random_dataset_shadow, [each_length, each_length]
     )
 
     shadow_train, shadow_test = torch.utils.data.random_split(
