@@ -56,7 +56,7 @@ def test_QID(dataset_name):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
 
-def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
+def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_target, train_shadow):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
@@ -80,7 +80,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         X, target = dataset[i]
         print(f'Sample {i}: {X}, Target: {target}')
 
-    TARGET_PATH = "./dataloader/trained_model/" + dataset_name + selected_dataset_name + model_name
+    TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
     device = torch.device("cuda")
 
     # 取前三分之一样本的数据
@@ -91,19 +91,21 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
     min_dataset, max_dataset, random_dataset, random_dataset_shadow, test_dataset = evaluator.get_specific_datasets_and_distances(
         n)
 
-    if selected_dataset_name == "min":
-        selected_dataset = min_dataset
-    elif selected_dataset_name == "max":
-        selected_dataset = max_dataset
-    elif selected_dataset_name == "random":
-        selected_dataset = random_dataset
+    # if selected_dataset_name == "min":
+    #     selected_dataset = min_dataset
+    # elif selected_dataset_name == "max":
+    #     selected_dataset = max_dataset
+    # elif selected_dataset_name == "random":
+    #     selected_dataset = random_dataset
 
     # 对selected_dataset数据集进行分析
-    selected_length = len(selected_dataset)
-    each_selected_length = selected_length // 2
-    num_features = next(iter(selected_dataset))[0].shape[0]
+    # selected_length = len(selected_dataset)
+    # each_selected_length = selected_length // 2
+    # num_features = next(iter(selected_dataset))[0].shape[0]
+    #
+    # selected_target_train = selected_dataset
+    num_features = next(iter(min_dataset))[0].shape[0]
 
-    selected_target_train = selected_dataset
     selected_target_test = test_dataset
 
     selected_shadow_train = random_dataset_shadow
@@ -121,12 +123,46 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode):
         target_model = ResNetModel(num_features, num_classes)
         shadow_model = ResNetModel(num_features, num_classes)
 
-    train_target_model(TARGET_PATH, device, selected_target_train, selected_target_test, target_model, model_name, num_features)
-    train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name, num_features)
-    test_mia(TARGET_PATH, device, num_classes, selected_target_train, selected_target_test,
+    if train_target:
+        train_target_model(TARGET_PATH + "_min", device, min_dataset, selected_target_test, target_model, model_name,
+                           num_features)
+        train_target_model(TARGET_PATH + "_max", device, max_dataset, selected_target_test, target_model, model_name,
+                           num_features)
+        train_target_model(TARGET_PATH + "_random", device, random_dataset, selected_target_test, target_model,
+                           model_name, num_features)
+    if train_shadow:
+        train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name,
+                           num_features)
+
+
+
+    test_mia_kmeans(TARGET_PATH, device, num_classes, min_dataset, selected_target_test,
              selected_shadow_train, selected_shadow_test,
              target_model, shadow_model, mode, model_name, num_features)
 
+def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
+             shadow_model, mode, model_name, num_features):
+    batch_size = 64
+
+    # 获取攻击数据集
+    if mode == 0:
+        attack_trainloader, attack_testloader = get_attack_dataset_with_shadow(
+            target_train, target_test, shadow_train, shadow_test, batch_size)
+    else:
+        attack_trainloader, attack_testloader = get_attack_dataset_without_shadow(target_train, target_test, batch_size)
+
+    # 进行MIA评估 黑盒+Shadow辅助数据集
+    if mode == 0:
+        attack_model = ShadowAttackModel(num_classes)
+        attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
+                     attack_testloader,
+                     target_model, shadow_model, attack_model, 1, model_name, num_features)
+    # 进行MIA评估 黑盒+Partial辅助数据集
+    elif mode == 1:
+        attack_model = PartialAttackModel(num_classes)
+        attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader,
+                     target_model,
+                     attack_model, 1, model_name, num_features)
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features):
@@ -211,8 +247,7 @@ def main():
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
-    parser.add_argument('--kmeans', type=str, default="min")
-
+    parser.add_argument('--kmeans', type=str, default="none")
     args = parser.parse_args()
 
     # 处理从命令行获得的参数
@@ -233,11 +268,11 @@ def main():
         dataset_name, model_name)
 
     # 训练目标模型
-    if args.train_target:
+    if args.train_target & (kmeans == 'none'):
         train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
 
     # 训练影子模型
-    if args.train_shadow:
+    if args.train_shadow & (kmeans == 'none'):
         train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
 
     # ----- 进行隐私风险评估 ----- #
@@ -247,7 +282,7 @@ def main():
                  target_model, shadow_model, mode, model_name, num_features)
     # 进行kmeans聚类研究
     elif args.evaluate_type == 1:
-        test_kmeans(dataset_name, model_name, kmeans, mode)
+        test_kmeans(dataset_name, model_name, kmeans, mode, args.train_target, args.train_shadow)
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
