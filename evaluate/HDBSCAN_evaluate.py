@@ -12,7 +12,7 @@ class HDBSCANDataset:
         X_scaled = self.load_and_scale_data()
 
         # 使用HDBSCAN进行聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=10, gen_min_span_tree=True)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=20, gen_min_span_tree=True)
         clusterer.fit(X_scaled)
 
         # HDBSCAN不直接提供到聚类中心的距离，但我们可以使用membership_vector_属性
