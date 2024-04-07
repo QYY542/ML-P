@@ -96,14 +96,14 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         min_dataset, [each_length, each_length]
     )
     target_train_max, target_test_max = torch.utils.data.random_split(
-        min_dataset, [each_length, each_length]
+        max_dataset, [each_length, each_length]
     )
     target_train_random, target_test_random = torch.utils.data.random_split(
-        min_dataset, [each_length, each_length]
+        max_dataset, [each_length, each_length]
     )
 
     shadow_train, shadow_test = torch.utils.data.random_split(
-        min_dataset, [each_length, each_length]
+        max_dataset, [each_length, each_length]
     )
 
     # 获取模型并且评估
@@ -120,8 +120,8 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
     if train_target:
         # _min_target.pth
-        train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
-                           num_features)
+        # train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
+        #                    num_features)
         # _max_target.pth
         train_target_model(TARGET_PATH + "_max", device, target_train_max, target_test_max, target_model, model_name,
                            num_features)
@@ -155,7 +155,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
     result_path = './dataloader/trained_model/attack_results.p'
     print("========MIN_dataset========")
-    evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
+    # evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
     print("========MAX_dataset========")
     evaluate_attack_model(attack_model_path, test_max_set_path, result_path, num_classes, 1)
     print("========RANDOM_dataset========")
