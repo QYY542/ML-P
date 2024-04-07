@@ -1,67 +1,96 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader, Subset
 import hdbscan
-
 
 class HDBSCANDataset:
     def __init__(self, dataset):
         self.dataset = dataset
+        self.min_cluster_size = self.calculate_min_cluster_size()
 
     def compute_hdbscan_clusters(self):
         X_scaled = self.load_and_scale_data()
+        print("min_cluster_size = ", self.min_cluster_size)
 
         # 使用HDBSCAN进行聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=20, gen_min_span_tree=True)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
         clusterer.fit(X_scaled)
+        labels = clusterer.labels_
 
-        # HDBSCAN不直接提供到聚类中心的距离，但我们可以使用membership_vector_属性
-        # 来获取每个点属于其聚类的程度（这个值越高，点越可能属于聚类）
-        # 注意：这个属性可能不总是可用，取决于HDBSCAN的参数设置
-        scores = clusterer.probabilities_
+        # 找到每个聚类的样本索引
+        unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
+        cluster_indices = {label: np.where(labels == label)[0] for label in unique_labels}
 
-        # 将这些“距离”值用于后续的逻辑
-        return scores
+        return cluster_indices, X_scaled
+
+    def apply_kmeans_to_clusters(self, cluster_indices, X_scaled):
+        distances = np.zeros(len(X_scaled))
+
+        for label, indices in cluster_indices.items():
+            cluster_points = X_scaled[indices]
+            kmeans = KMeans(n_clusters=1, random_state=42).fit(cluster_points)
+            distances[indices] = np.linalg.norm(cluster_points - kmeans.cluster_centers_, axis=1)
+
+        return distances
 
     def get_specific_datasets_and_distances(self, n):
-        scores = self.compute_hdbscan_clusters()
+        cluster_indices, X_scaled = self.compute_hdbscan_clusters()
+        distances = self.apply_kmeans_to_clusters(cluster_indices, X_scaled)
 
-        # 由于我们没有直接的距离度量，我们使用scores表示点属于聚类的程度
-        # 最高分和最低分（如果有意义的话），或者选择其他逻辑
-        low_scores_indices = np.argsort(scores)[:n]
-        high_scores_indices = np.argsort(scores)[-n:]
+        # 去掉0值样本
+        distances_indices = np.where(distances > 0)[0]
+        distances = distances[distances_indices]
+
+        # 选择距离最远和最近的样本
+        high_distance_indices = np.argsort(distances)[-n:]
+        low_distance_indices = np.argsort(distances)[:n]
         random_indices = np.random.choice(len(self.dataset), n, replace=False)
         random_shadow_indices = np.random.choice(len(self.dataset), n + n, replace=False)
 
-        # 获取对应的scores
-        high_scores_values = scores[high_scores_indices]
-        low_scores_values = scores[low_scores_indices]
+        excluded_indices = set(high_distance_indices).union(low_distance_indices, random_indices)
+        remaining_indices = list(set(range(len(self.dataset))) - excluded_indices)
 
-        print("属于聚类程度最高的样本分数:", high_scores_values)
-        print("属于聚类程度最低的样本分数:", low_scores_values)
+        test_indices = np.random.choice(remaining_indices, n, replace=False)
 
-        # 根据索引创建数据子集
-        high_score_dataset = Subset(self.dataset, high_scores_indices)
-        low_score_dataset = Subset(self.dataset, low_scores_indices)
+        # 获取对应的distance
+        low_distance_values = distances[low_distance_indices]
+        high_distance_values = distances[high_distance_indices]
+
+        print("聚类距离小的样本分数:", low_distance_values)
+        print("聚类距离大的样本分数:", high_distance_values)
+
+        # 创建数据子集
+        high_distance_dataset = Subset(self.dataset, high_distance_indices)
+        low_distance_dataset = Subset(self.dataset, low_distance_indices)
         random_dataset = Subset(self.dataset, random_indices)
+        test_dataset = Subset(self.dataset, test_indices)
         random_dataset_shadow = Subset(self.dataset, random_shadow_indices)
 
-        # 排除min_dataset, max_dataset, random_dataset的索引
-        excluded_indices = set(high_scores_indices).union(low_scores_indices, random_indices)
-        all_indices = set(range(len(self.dataset)))
-        remaining_indices = list(all_indices - excluded_indices)
-
-        # 从剩余索引中选择随机数据集作为test_dataset
-        test_indices = np.random.choice(remaining_indices, n, replace=False)
-        test_dataset = Subset(self.dataset, test_indices)
-
-        return high_score_dataset, low_score_dataset, random_dataset, test_dataset, random_dataset_shadow
+        return low_distance_dataset, high_distance_dataset, random_dataset, test_dataset, random_dataset_shadow
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
-            X = X.numpy()  # 假设X是numpy数组
-        # 数据标准化
+            X = X.numpy()
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
+
+    def calculate_min_cluster_size(self):
+        standard_size = 10000  # 标准大小
+        base_min_cluster_size = 10  # 基础的min_cluster_size值
+
+        # 获取数据集的大小和特征数
+        data_size = len(self.dataset)
+        # 假设dataset是二维的，例如：[样本数, 特征数]
+        # 如果不是这样，需要根据实际情况调整
+        num_features = next(iter(self.dataset))[0].shape[0]
+
+        # 根据数据大小调整min_cluster_size
+        size_factor = data_size * 0.5 / standard_size
+        # 根据特征数量调整基础值
+        feature_factor = 1 + (num_features - 1) / 50  # 假设每增加10个特征，min_cluster_size增加2%
+
+        adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
+        return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
