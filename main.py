@@ -144,6 +144,10 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_random")
 
+    attack_model_path = ''
+    test_min_set_path = ''
+    test_max_set_path = ''
+    test_random_set_path = ''
     if mode == "0":
         attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
         test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
