@@ -146,14 +146,14 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
     # test_mia_kmeans(TARGET_PATH, device, num_classes, random_dataset, selected_target_test,
     #                 selected_shadow_train, selected_shadow_test,
     #                 target_model, shadow_model, mode, model_name, num_features,"_random")
-    attack_min_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
-    attack_max_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
-    attack_random_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
-    test_min_set_path = './dataloader/trained_model/StudentMLP_min_meminf_attack_mode0_test.p'
-    test_max_set_path = './dataloader/trained_model/StudentMLP_max_meminf_attack_mode0_test.p'
-    test_random_set_path = './dataloader/trained_model/StudentMLP_random_meminf_attack_mode0_test.p'
+    attack_min_model_path = TARGET_PATH + '_min' + '_meminf_attack0.pth'
+    attack_max_model_path = TARGET_PATH + '_max' + '_meminf_attack0.pth'
+    attack_random_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
+    test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
+    test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
+    test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
 
-    attack_model_path = attack_random_model_path
+    attack_model_path = attack_min_model_path
     result_path = './dataloader/trained_model/attack_results.p'
     print("========MIN_dataset========")
     evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
