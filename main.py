@@ -84,7 +84,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = 200
+    n = 300
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
@@ -144,24 +144,21 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_random")
 
-    # attack_model_path = ''
-    # test_min_set_path = ''
-    # test_max_set_path = ''
-    # test_random_set_path = ''
-    # if mode == "0":
-    #     attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
-    #     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
-    #     test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
-    #     test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
-    # elif mode == "1":
-    #     attack_model_path = TARGET_PATH + '_random' + '_meminf_attack1.pth'
-    #     test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode1_test.p'
-    #     test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode1_test.p'
-    #     test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode1_test.p'
-    attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
-    test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
-    test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
-    test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
+    attack_model_path = ''
+    test_min_set_path = ''
+    test_max_set_path = ''
+    test_random_set_path = ''
+    if mode == 0:
+        attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
+        test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
+        test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
+        test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
+    elif mode == 1:
+        attack_model_path = TARGET_PATH + '_random' + '_meminf_attack1.pth'
+        test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode1_test.p'
+        test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode1_test.p'
+        test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode1_test.p'
+
 
     result_path = './dataloader/trained_model/attack_results.p'
     print("========MIN_dataset========")

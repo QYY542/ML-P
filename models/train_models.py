@@ -102,9 +102,9 @@ class target_model_training():
 
 def train_target_model(PATH, device, train_set, test_set, model, model_name, num_features):
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=64, shuffle=True, num_workers=2)
+        train_set, batch_size=128, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=64, shuffle=True, num_workers=2)
+        test_set, batch_size=128, shuffle=True, num_workers=2)
 
     model = target_model_training(train_loader, test_loader, model, device, num_features, model_name)
     acc_train = 0
