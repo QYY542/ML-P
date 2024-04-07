@@ -92,9 +92,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     num_features = next(iter(dataset))[0].shape[0]
     each_length = n // 2
 
-    target_train_min, target_test_min = torch.utils.data.random_split(
-        random_dataset, [each_length, each_length]
-    )
+    # target_train_min, target_test_min = torch.utils.data.random_split(
+    #     random_dataset, [each_length, each_length]
+    # )
     target_train_max, target_test_max = torch.utils.data.random_split(
         max_dataset, [each_length, each_length]
     )
@@ -119,9 +119,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
         shadow_model = ResNetModel(num_features, num_classes)
 
     if train_target:
-        # _min_target.pth
-        train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
-                           num_features)
+        # # _min_target.pth
+        # train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
+        #                    num_features)
         # _max_target.pth
         train_target_model(TARGET_PATH + "_max", device, target_train_max, target_test_max, target_model, model_name,
                            num_features)
@@ -134,9 +134,9 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
                            num_features)
 
     # 训练攻击模型+生成测试数据集
-    test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
-             shadow_train, shadow_test,
-             target_model, shadow_model, mode, model_name, num_features, "_min")
+    # test_mia(TARGET_PATH, device, num_classes, target_train_min, target_test_min,
+    #          shadow_train, shadow_test,
+    #          target_model, shadow_model, mode, model_name, num_features, "_min")
     test_mia(TARGET_PATH, device, num_classes, target_train_max, target_test_max,
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_max")
