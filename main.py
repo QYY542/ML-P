@@ -144,7 +144,6 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
              shadow_train, shadow_test,
              target_model, shadow_model, mode, model_name, num_features, "_random")
 
-
     if mode == "0":
         attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
         test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
@@ -186,7 +185,8 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader, attack_testloader,
+        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+                     attack_testloader,
                      target_model,
                      attack_model, 1, model_name, num_features)
 
@@ -225,6 +225,8 @@ def prepare_dataset(dataset_name, model_name):
     )
     num_features = next(iter(dataset))[0].shape[0]
 
+    target_model = []
+    shadow_model = []
     # 模型
     if model_name == "MLP":
         print("MLP")
