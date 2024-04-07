@@ -1,8 +1,14 @@
+import pickle
+import torch.nn.functional as F
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset
+
+from evaluate.mia_evaluate import attack_for_blackbox
+from models.define_models import ShadowAttackModel
 
 
 class KmeansDataset:
@@ -72,3 +78,86 @@ class KmeansDataset:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
+
+
+def attack_mode_0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model,
+                  shadow_model, attack_model, get_attack_set, model_name, num_features):
+    MODELS_PATH = ATTACK_PATH + "_meminf_attack0.pth"
+    RESULT_PATH = ATTACK_PATH + "_meminf_attack0.p"
+    ATTACK_SETS = ATTACK_PATH + "_meminf_attack_mode0_"
+    ATTACK_MIN_SETS = ATTACK_PATH + "_min" + "_meminf_attack_mode0_"
+    ATTACK_MAX_SETS = ATTACK_PATH + "_max" + "_meminf_attack_mode0_"
+    ATTACK_RANDOM_SETS = ATTACK_PATH + "_random" + "_meminf_attack_mode0_"
+
+    attack = attack_for_blackbox(SHADOW_PATH, TARGET_PATH, ATTACK_SETS, attack_trainloader, attack_testloader,
+                                 target_model, shadow_model, attack_model, device, model_name, num_features)
+
+    if get_attack_set:
+        attack.delete_pickle()
+        attack.prepare_dataset()
+
+    for i in range(50):
+        flag = 1 if i == 49 else 0
+        print("Epoch %d :" % (i + 1))
+        res_train = attack.train(flag, RESULT_PATH)
+        res_test = attack.test(flag, RESULT_PATH)
+
+    attack.saveModel(MODELS_PATH)
+    print("Saved Attack Model")
+
+    return res_train, res_test
+
+
+def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
+    # 加载攻击模型
+    attack_model = ShadowAttackModel(num_classes)
+    attack_model.load_state_dict(torch.load(model_path, map_location=attack_model.device))
+    attack_model.eval()
+
+    correct = 0
+    total = 0
+    final_test_ground_truth = []
+    final_test_prediction = []
+    final_test_probability = []
+
+    with torch.no_grad():
+        with open(test_set_path, "rb") as f:
+            while True:
+                try:
+                    output, prediction, members = pickle.load(f)
+                    # 确保数据在正确的设备上
+                    output, prediction, members = output.to(attack_model.device), prediction.to(attack_model.device), members.to(attack_model.device)
+
+                    results = attack_model(output, prediction)
+                    _, predicted = results.max(1)
+                    total += members.size(0)
+                    correct += predicted.eq(members).sum().item()
+                    probabilities = F.softmax(results, dim=1)
+
+                    if epoch:  # 如果有epoch参数，保存详细结果
+                        final_test_ground_truth.append(members)
+                        final_test_prediction.append(predicted)
+                        final_test_probability.append(probabilities[:, 1])
+
+                except EOFError:
+                    break
+
+    if epoch:  # 处理和保存测试结果
+        final_test_ground_truth = torch.cat(final_test_ground_truth, dim=0).cpu().numpy()
+        final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
+        final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
+
+        test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
+        test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
+
+        with open(result_path, "wb") as f:
+            pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
+
+        print("Saved Attack Test Ground Truth and Predict Sets")
+        print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
+
+    test_accuracy = 1.0 * correct / total
+    print('Test Acc: %.3f%% (%d/%d)' % (100. * test_accuracy, correct, total))
+
+    final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
+    return final_result

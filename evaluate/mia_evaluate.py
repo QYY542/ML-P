@@ -21,7 +21,6 @@ def weights_init(m):
         nn.init.constant_(m.bias, 0)
 
 
-
 class attack_for_blackbox():
     def __init__(self, SHADOW_PATH, TARGET_PATH, ATTACK_SETS, attack_train_loader, attack_test_loader, target_model,
                  shadow_model, attack_model, device, model_name, num_features):
@@ -66,6 +65,7 @@ class attack_for_blackbox():
         return output, prediction.unsqueeze(-1)
 
     def prepare_dataset(self):
+        # self.ATTACK_SETS = attack_sets
         with open(self.ATTACK_SETS + "train.p", "wb") as f:
             # targets 来自 dataloader
             # members 来自 get_attack_dataset_with_shadow
@@ -148,7 +148,7 @@ class attack_for_blackbox():
 
         final_result.append(1. * correct / total)
         print('Train Acc: %.3f%% (%d/%d) | Loss: %.3f' % (
-        100. * correct / total, correct, total, 1. * train_loss / batch_idx))
+            100. * correct / total, correct, total, 1. * train_loss / batch_idx))
 
         return final_result
 
@@ -222,7 +222,6 @@ class attack_for_blackbox():
         torch.save(self.attack_model.state_dict(), path)
 
 
-
 # black shadow
 def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model,
                  shadow_model, attack_model, get_attack_set, model_name, num_features):
@@ -273,5 +272,3 @@ def attack_mode1(TARGET_PATH, ATTACK_PATH, device, attack_trainloader, attack_te
     print("Saved Attack Model")
 
     return res_train, res_test
-
-

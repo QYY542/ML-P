@@ -1,6 +1,6 @@
 import argparse
 
-from evaluate.kmeans_evaluate import KmeansDataset
+from evaluate.kmeans_evaluate import KmeansDataset, attack_mode_0, evaluate_attack_model
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
@@ -56,7 +56,7 @@ def test_QID(dataset_name):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
 
-def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_target, train_shadow):
+def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_target, train_shadow, device):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
@@ -81,7 +81,6 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
         print(f'Sample {i}: {X}, Target: {target}')
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
-    device = torch.device("cuda")
 
     # 取前三分之一样本的数据
     n = 400
@@ -138,14 +137,34 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
         train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name,
                            num_features)
 
+    # test_mia_kmeans(TARGET_PATH, device, num_classes, min_dataset, selected_target_test,
+    #                 selected_shadow_train, selected_shadow_test,
+    #                 target_model, shadow_model, mode, model_name, num_features,"_min")
+    # test_mia_kmeans(TARGET_PATH, device, num_classes, max_dataset, selected_target_test,
+    #                 selected_shadow_train, selected_shadow_test,
+    #                 target_model, shadow_model, mode, model_name, num_features,"_max")
+    # test_mia_kmeans(TARGET_PATH, device, num_classes, random_dataset, selected_target_test,
+    #                 selected_shadow_train, selected_shadow_test,
+    #                 target_model, shadow_model, mode, model_name, num_features,"_random")
+    attack_min_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
+    attack_max_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
+    attack_random_model_path = './dataloader/trained_model/StudentMLP_random_meminf_attack0.pth'
+    test_min_set_path = './dataloader/trained_model/StudentMLP_min_meminf_attack_mode0_test.p'
+    test_max_set_path = './dataloader/trained_model/StudentMLP_max_meminf_attack_mode0_test.p'
+    test_random_set_path = './dataloader/trained_model/StudentMLP_random_meminf_attack_mode0_test.p'
 
+    attack_model_path = attack_random_model_path
+    result_path = './dataloader/trained_model/attack_results.p'
+    print("========MIN_dataset========")
+    evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
+    print("========MAX_dataset========")
+    evaluate_attack_model(attack_model_path, test_max_set_path, result_path, num_classes, 1)
+    print("========RANDOM_dataset========")
+    evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
 
-    test_mia_kmeans(TARGET_PATH, device, num_classes, min_dataset, selected_target_test,
-             selected_shadow_train, selected_shadow_test,
-             target_model, shadow_model, mode, model_name, num_features)
 
 def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-             shadow_model, mode, model_name, num_features):
+                    shadow_model, mode, model_name, num_features, kmeans_mode):
     batch_size = 64
 
     # 获取攻击数据集
@@ -158,15 +177,16 @@ def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + "_min_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
-                     attack_testloader,
-                     target_model, shadow_model, attack_model, 1, model_name, num_features)
+        attack_mode_0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device, attack_trainloader,
+                      attack_testloader,
+                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
         attack_mode1(PATH + "_target.pth", PATH, device, attack_trainloader, attack_testloader,
                      target_model,
                      attack_model, 1, model_name, num_features)
+
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features):
@@ -286,7 +306,7 @@ def main():
                  target_model, shadow_model, mode, model_name, num_features)
     # 进行kmeans聚类研究
     elif args.evaluate_type == 1:
-        test_kmeans(dataset_name, model_name, kmeans, mode, args.train_target, args.train_shadow)
+        test_kmeans(dataset_name, model_name, kmeans, mode, args.train_target, args.train_shadow, device)
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)

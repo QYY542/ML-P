@@ -35,6 +35,8 @@ class ShadowAttackModel(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 2),
         )
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
 
     def forward(self, output, prediction):
         Output_Component_result = self.Output_Component(output)
