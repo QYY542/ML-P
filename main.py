@@ -1,6 +1,6 @@
 import argparse
 
-from evaluate.kmeans_evaluate import KmeansDataset, attack_mode_0, evaluate_attack_model
+from evaluate.kmeans_evaluate import KmeansDataset, evaluate_attack_model
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
@@ -84,7 +84,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
 
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = 500
+    n = 200
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)

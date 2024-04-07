@@ -67,34 +67,6 @@ class KmeansDataset:
         return X_scaled
 
 
-def attack_mode_0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainloader, attack_testloader, target_model,
-                  shadow_model, attack_model, get_attack_set, model_name, num_features):
-    MODELS_PATH = ATTACK_PATH + "_meminf_attack0.pth"
-    RESULT_PATH = ATTACK_PATH + "_meminf_attack0.p"
-    ATTACK_SETS = ATTACK_PATH + "_meminf_attack_mode0_"
-    ATTACK_MIN_SETS = ATTACK_PATH + "_min" + "_meminf_attack_mode0_"
-    ATTACK_MAX_SETS = ATTACK_PATH + "_max" + "_meminf_attack_mode0_"
-    ATTACK_RANDOM_SETS = ATTACK_PATH + "_random" + "_meminf_attack_mode0_"
-
-    attack = attack_for_blackbox(SHADOW_PATH, TARGET_PATH, ATTACK_SETS, attack_trainloader, attack_testloader,
-                                 target_model, shadow_model, attack_model, device, model_name, num_features)
-
-    if get_attack_set:
-        attack.delete_pickle()
-        attack.prepare_dataset()
-
-    for i in range(50):
-        flag = 1 if i == 49 else 0
-        print("Epoch %d :" % (i + 1))
-        res_train = attack.train(flag, RESULT_PATH)
-        res_test = attack.test(flag, RESULT_PATH)
-
-    attack.saveModel(MODELS_PATH)
-    print("Saved Attack Model")
-
-    return res_train, res_test
-
-
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
     # 加载攻击模型
     attack_model = ShadowAttackModel(num_classes)
@@ -113,7 +85,8 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
                 try:
                     output, prediction, members = pickle.load(f)
                     # 确保数据在正确的设备上
-                    output, prediction, members = output.to(attack_model.device), prediction.to(attack_model.device), members.to(attack_model.device)
+                    output, prediction, members = output.to(attack_model.device), prediction.to(
+                        attack_model.device), members.to(attack_model.device)
 
                     results = attack_model(output, prediction)
                     _, predicted = results.max(1)
