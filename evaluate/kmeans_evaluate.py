@@ -81,12 +81,24 @@ class KmeansDataset:
         return k_optimal
 
     def find_elbow_point(self, sse):
-        # 这里简化处理，返回SSE下降变缓的第一个点作为肘部
-        # 更复杂的实现可能需要计算曲率等
-        for i in range(1, len(sse) - 1):
-            if (sse[i] - sse[i + 1]) < (sse[i - 1] - sse[i]) / 2:
-                return i + 1
-        return len(sse)  # 如果没有找到明显的肘点，返回最大聚类数
+        # 将SSE列表标准化到0到1之间
+        sse_normalized = (sse - min(sse)) / (max(sse) - min(sse))
+        n_points = len(sse_normalized)
+        all_coords = np.vstack((range(n_points), sse_normalized)).T
+        # 第一个点和最后一个点
+        first_point = all_coords[0]
+        line_vec = all_coords[-1] - all_coords[0]
+        line_vec_norm = line_vec / np.sqrt(np.sum(line_vec ** 2))
+        # 计算每一个点到直线的距离
+        distances = []
+        for point in all_coords:
+            vec_from_first = point - first_point
+            cross_vec = np.cross(line_vec_norm, vec_from_first)
+            dist = np.linalg.norm(cross_vec)
+            distances.append(dist)
+        # 找到距离最大的点作为肘部点
+        elbow_index = np.argmax(distances)
+        return elbow_index + 1  # 由于聚类数不能为0，所以加1
 
 
 
