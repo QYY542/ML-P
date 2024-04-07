@@ -103,7 +103,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     )
 
     shadow_train, shadow_test = torch.utils.data.random_split(
-        random_dataset_shadow, [each_length, each_length]
+        random_dataset, [each_length, each_length]
     )
 
     # 获取模型并且评估
