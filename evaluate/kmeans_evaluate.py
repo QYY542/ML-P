@@ -34,12 +34,12 @@ class KmeansDataset:
         # 获取距离最小、最大和随机的索引
         min_indices = np.argsort(min_distances)[:n]
         max_indices = np.argsort(min_distances)[-n:]
-        random_indices = np.random.choice(len(self.dataset), n, replace=False)
+        random_indices = np.random.choice(len(self.dataset), n+n, replace=False)
 
         # 获取对应的聚类距离
         min_distances_values = min_distances[min_indices]
         max_distances_values = min_distances[max_indices]
-        random_distances_values = min_distances[random_indices]
+        random_distances_values = min_distances[random_indices[:n]]
 
         # 打印聚类距离
         print("聚类距离最小的样本距离:", min_distances_values)
@@ -49,16 +49,8 @@ class KmeansDataset:
         # 根据索引创建数据子集
         min_dataset = Subset(self.dataset, min_indices)
         max_dataset = Subset(self.dataset, max_indices)
-        random_dataset = Subset(self.dataset, random_indices)
-
-        # 排除min_dataset, max_dataset, random_dataset的索引
-        excluded_indices = set(random_indices)
-        all_indices = set(range(len(self.dataset)))
-        remaining_indices = list(all_indices - excluded_indices)
-
-        # 从剩余索引中选择随机数据集作为random_dataset_shadow
-        random_indices_shadow = np.random.choice(remaining_indices, n, replace=False)
-        random_dataset_shadow = Subset(self.dataset, random_indices_shadow)
+        random_dataset = Subset(self.dataset, random_indices[:n])
+        random_dataset_shadow = Subset(self.dataset, random_indices[-n:])
 
         return min_dataset, max_dataset, random_dataset, random_dataset_shadow
 
