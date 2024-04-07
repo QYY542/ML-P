@@ -17,6 +17,7 @@ class KmeansDataset:
 
     def compute_kmeans_distance(self):
         n_clusters = self.elbow_method()  # 使用肘部方法确定最佳聚类数
+        print("n_clusters: ", n_clusters)
         X_scaled = self.load_and_scale_data()
 
         # 训练k-means模型
