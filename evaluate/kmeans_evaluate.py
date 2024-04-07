@@ -81,10 +81,11 @@ class KmeansDataset:
         return k_optimal
 
     def find_elbow_point(self, sse):
-        # 将SSE列表标准化到0到1之间
-        sse_normalized = (sse - min(sse)) / (max(sse) - min(sse))
+        sse_array = np.array(sse)  # 将sse列表转换为NumPy数组
+        # 将SSE数组标准化到0到1之间
+        sse_normalized = (sse_array - np.min(sse_array)) / (np.max(sse_array) - np.min(sse_array))
         n_points = len(sse_normalized)
-        all_coords = np.vstack((range(n_points), sse_normalized)).T
+        all_coords = np.vstack((np.arange(n_points), sse_normalized)).T
         # 第一个点和最后一个点
         first_point = all_coords[0]
         line_vec = all_coords[-1] - all_coords[0]
