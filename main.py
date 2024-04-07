@@ -56,7 +56,7 @@ def test_QID(dataset_name):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
 
-def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_target, train_shadow, device):
+def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
@@ -84,7 +84,7 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
 
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = 400
+    n = 500
 
     # 获取三类数据集 min max random
     evaluator = KmeansDataset(dataset)
@@ -286,7 +286,6 @@ def main():
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
-    parser.add_argument('--kmeans', type=str, default="none")
     args = parser.parse_args()
 
     # 处理从命令行获得的参数
@@ -295,7 +294,6 @@ def main():
     dataset_name = args.dataset
     model_name = args.model
     mode = args.mode
-    kmeans = args.kmeans
     TARGET_ROOT = "./dataloader/trained_model/"
     if not os.path.exists(TARGET_ROOT):
         print(f"Create directory named {TARGET_ROOT}")
@@ -321,7 +319,7 @@ def main():
                  target_model, shadow_model, mode, model_name, num_features)
     # 进行kmeans聚类研究
     elif args.evaluate_type == 1:
-        test_kmeans(dataset_name, model_name, kmeans, mode, args.train_target, args.train_shadow, device)
+        test_kmeans(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)

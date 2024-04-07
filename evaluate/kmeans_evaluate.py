@@ -52,7 +52,7 @@ class KmeansDataset:
         random_dataset = Subset(self.dataset, random_indices)
 
         # 排除min_dataset, max_dataset, random_dataset的索引
-        excluded_indices = set(min_indices).union(max_indices, random_indices)
+        excluded_indices = set(random_indices)
         all_indices = set(range(len(self.dataset)))
         remaining_indices = list(all_indices - excluded_indices)
 
