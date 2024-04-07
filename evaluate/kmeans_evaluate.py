@@ -74,7 +74,7 @@ class KmeansDataset:
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
-    def elbow_method(self, max_clusters=50):
+    def elbow_method(self, max_clusters=30):
         X_scaled = self.load_and_scale_data()
         sse = []
         for n_clusters in range(1, max_clusters + 1):
