@@ -124,13 +124,17 @@ def test_kmeans(dataset_name, model_name, selected_dataset_name, mode, train_tar
         shadow_model = ResNetModel(num_features, num_classes)
 
     if train_target:
+        # StudentMLP_min_target.pth
         train_target_model(TARGET_PATH + "_min", device, min_dataset, selected_target_test, target_model, model_name,
                            num_features)
+        # StudentMLP_max_target.pth
         train_target_model(TARGET_PATH + "_max", device, max_dataset, selected_target_test, target_model, model_name,
                            num_features)
+        # StudentMLP_random_target.pth
         train_target_model(TARGET_PATH + "_random", device, random_dataset, selected_target_test, target_model,
                            model_name, num_features)
     if train_shadow:
+        # StudentMLP_shadow.pth
         train_shadow_model(TARGET_PATH, device, selected_shadow_train, selected_shadow_test, shadow_model, model_name,
                            num_features)
 
@@ -154,7 +158,7 @@ def test_mia_kmeans(PATH, device, num_classes, target_train, target_test, shadow
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + "_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
+        attack_mode0(PATH + "_min_target.pth", PATH + "_shadow.pth", PATH, device, attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
