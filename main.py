@@ -1,5 +1,6 @@
 import argparse
 
+from evaluate.HDBSCAN_evaluate import HDBSCANDataset
 from evaluate.kmeans_evaluate import KmeansDataset, evaluate_attack_model, test_kmeans_mia, \
     get_attack_dataset_with_shadow_kmeans
 from evaluate.mia_evaluate import *
@@ -178,6 +179,126 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
 
 
+def test_HDBSCAN(dataset_name, model_name, mode, train_target, train_shadow, device):
+    # 假设您已经正确加载了数据集
+    if dataset_name == 'Obesity':
+        print('Obesity_kmeans')
+        dataset = Obesity()
+        num_classes = 7
+    elif dataset_name == 'Student':
+        print('Student_kmeans')
+        dataset = Student()
+        num_classes = 3
+    elif dataset_name == 'Hospital':
+        print('Hospital_kmeans')
+        dataset = Hospital()
+        num_classes = 3
+    elif dataset_name == 'Adult':
+        print('Adult_kmeans')
+        dataset = Adult()
+        num_classes = 3
+
+    # 打印前两个样本
+    for i in range(2):
+        X, target = dataset[i]
+        print(f'Sample {i}: {X}, Target: {target}')
+
+    TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
+
+    # 取前三分之一样本的数据
+    # 这个数据和train_target_model中的batch_size有关
+    n = 300
+
+    # 获取三类数据集 min max random
+    evaluator = HDBSCANDataset(dataset)
+    min_dataset, max_dataset, random_dataset, test_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
+    num_features = next(iter(dataset))[0].shape[0]
+    each_length = n
+
+    # target_train_min, target_test_min = torch.utils.data.random_split(
+    #     min_dataset, [each_length, each_length]
+    # )
+    # target_train_max, target_test_max = torch.utils.data.random_split(
+    #     max_dataset, [each_length, each_length]
+    # )
+    # target_train_random, target_test_random = torch.utils.data.random_split(
+    #     random_dataset, [each_length, each_length]
+    # )
+
+    target_train_min, target_test_min = min_dataset, test_dataset
+    target_train_max, target_test_max = max_dataset, test_dataset
+    target_train_random, target_test_random = random_dataset, test_dataset
+
+    shadow_train, shadow_test = torch.utils.data.random_split(
+        random_dataset_shadow, [each_length, each_length]
+    )
+    # 获取模型并且评估
+    if model_name == "MLP":
+        print("MLP")
+        target_model = MLP(num_features, num_classes)
+        shadow_model = MLP(num_features, num_classes)
+    elif model_name == "ResNet":
+        print("ResNet")
+        print(num_features)
+        print(num_classes)
+        target_model = ResNetModel(num_features, num_classes)
+        shadow_model = ResNetModel(num_features, num_classes)
+
+    if train_target:
+        # _min_target.pth
+        train_target_model(TARGET_PATH + "_min", device, target_train_min, target_test_min, target_model, model_name,
+                           num_features)
+        # _max_target.pth
+        train_target_model(TARGET_PATH + "_max", device, target_train_max, target_test_max, target_model, model_name,
+                           num_features)
+        # _random_target.pth
+        train_target_model(TARGET_PATH + "_random", device, target_train_random, target_test_random, target_model,
+                           model_name, num_features)
+    if train_shadow:
+        # _shadow.pth
+        train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name,
+                           num_features)
+
+    # 生成测试数据集+训练攻击模型
+    attack_trainloader, attack_min_testloader, attack_max_testloader, attack_random_testloader = get_attack_dataset_with_shadow_kmeans(
+        target_train_min, target_test_min, target_train_max, target_test_max,target_train_random, target_test_random, shadow_train, shadow_test,batch_size=64)
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_min_testloader,
+             target_model, shadow_model, mode, model_name, num_features, "_min")
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_max_testloader,
+             target_model, shadow_model, mode, model_name, num_features, "_max")
+
+    test_kmeans_mia(TARGET_PATH, device, num_classes, attack_trainloader,
+             attack_random_testloader,
+             target_model, shadow_model, mode, model_name, num_features, "_random")
+
+    attack_model_path = ''
+    test_min_set_path = ''
+    test_max_set_path = ''
+    test_random_set_path = ''
+    if mode == 0:
+        attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
+        test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
+        test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode0_test.p'
+        test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode0_test.p'
+    elif mode == 1:
+        attack_model_path = TARGET_PATH + '_random' + '_meminf_attack1.pth'
+        test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode1_test.p'
+        test_max_set_path = TARGET_PATH + '_max' + '_meminf_attack_mode1_test.p'
+        test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode1_test.p'
+
+
+    result_path = './dataloader/trained_model/attack_results.p'
+    print("========MIN_dataset========")
+    evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
+    print("========MAX_dataset========")
+    evaluate_attack_model(attack_model_path, test_max_set_path, result_path, num_classes, 1)
+    print("========RANDOM_dataset========")
+    evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
+
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
     batch_size = 64
@@ -303,6 +424,10 @@ def main():
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
+    # 进行HDBSCAN聚类研究
+    elif args.evaluate_type == 3:
+        test_HDBSCAN(dataset_name)
+
 
 
 def fix_seed(num):
