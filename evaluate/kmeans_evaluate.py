@@ -38,7 +38,7 @@ class KmeansDataset:
         min_indices = np.argsort(min_distances)[:n]
         max_indices = np.argsort(min_distances)[-n:]
         random_indices = np.random.choice(len(self.dataset), n, replace=False)
-        random_shadow_indices = np.random.choice(len(self.dataset), n, replace=False)
+        random_shadow_indices = np.random.choice(len(self.dataset), n+n, replace=False)
 
         # 获取对应的聚类距离
         min_distances_values = min_distances[min_indices]
@@ -47,7 +47,6 @@ class KmeansDataset:
         # 打印聚类距离
         print("聚类距离最小的样本距离:", min_distances_values)
         print("聚类距离最大的样本距离:", max_distances_values)
-
 
         # 根据索引创建数据子集
         min_dataset = Subset(self.dataset, min_indices)
