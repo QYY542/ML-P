@@ -96,7 +96,7 @@ class HDBSCANDataset:
     #
     #     adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
     #     return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
-    def calculate_min_cluster_size_via_sampling(self, sample_size=0.1, min_size=5, max_size=50, step=5):
+    def calculate_min_cluster_size(self, sample_size=0.1, min_size=5, max_size=50, step=5):
         X_scaled = self.load_and_scale_data()  # 加载并缩放数据
 
         # 对数据进行随机采样
