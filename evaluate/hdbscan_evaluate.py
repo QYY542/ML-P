@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import silhouette_score
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader, Subset
@@ -95,28 +96,26 @@ class HDBSCANDataset:
     #
     #     adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
     #     return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
-    def calculate_min_cluster_size(self):
+    def calculate_min_cluster_size_via_sampling(self, sample_size=0.1, min_size=5, max_size=50, step=5):
         X_scaled = self.load_and_scale_data()  # 加载并缩放数据
 
-        # 初始化轮廓系数的最大值和最佳min_cluster_size
+        # 对数据进行随机采样
+        X_sample, _ = train_test_split(X_scaled, test_size=sample_size, random_state=42)
+
         max_silhouette = -1
         best_min_cluster_size = None
 
-        # 遍历不同的min_cluster_size值
-        for min_cluster_size in range(5, 51, 5):  # 例如，从5到50，步长为5
+        # 在采样数据上遍历不同的min_cluster_size值
+        for min_cluster_size in range(min_size, max_size + 1, step):
             clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
-            clusterer.fit(X_scaled)
+            clusterer.fit(X_sample)
             labels = clusterer.labels_
 
-            # 确保聚类结果中有超过一个聚类且不全是噪声
+            # 如果有超过一个聚类且不全是噪声
             if len(set(labels)) > 1 and np.sum(labels != -1) > 1:
-                # 计算轮廓系数
-                silhouette = silhouette_score(X_scaled, labels)
+                silhouette = silhouette_score(X_sample, labels)
                 if silhouette > max_silhouette:
                     max_silhouette = silhouette
                     best_min_cluster_size = min_cluster_size
 
-        if best_min_cluster_size is None:  # 如果没有找到好的min_cluster_size
-            best_min_cluster_size = 5  # 默认值
-
-        return best_min_cluster_size
+        return best_min_cluster_size if best_min_cluster_size else min_size
