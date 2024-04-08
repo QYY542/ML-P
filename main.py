@@ -1,6 +1,6 @@
 import argparse
 
-from evaluate.HDBSCAN_evaluate import HDBSCANDataset
+from evaluate.hdbscan_evaluate import HDBSCANDataset
 from evaluate.kmeans_evaluate import KmeansDataset, evaluate_attack_model, test_kmeans_mia, \
     get_attack_dataset_with_shadow_kmeans
 from evaluate.mia_evaluate import *
@@ -179,7 +179,7 @@ def test_kmeans(dataset_name, model_name, mode, train_target, train_shadow, devi
     evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
 
 
-def test_HDBSCAN(dataset_name, model_name, mode, train_target, train_shadow, device):
+def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
         print('Obesity_kmeans')
@@ -426,7 +426,7 @@ def main():
         test_QID(dataset_name)
     # 进行HDBSCAN聚类研究
     elif args.evaluate_type == 3:
-        test_HDBSCAN(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
+        test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
 
 
 

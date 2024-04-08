@@ -38,6 +38,10 @@ class HDBSCANDataset:
         cluster_indices, X_scaled = self.compute_hdbscan_clusters()
         distances = self.apply_kmeans_to_clusters(cluster_indices, X_scaled)
 
+        # 去掉0值样本
+        distances_indices = np.where(distances > 0)[0]
+        distances = distances[distances_indices]
+
         # 选择距离最远和最近的样本
         low_distance_indices = np.argsort(distances)[:n]
         high_distance_indices = np.argsort(distances)[-n:]
