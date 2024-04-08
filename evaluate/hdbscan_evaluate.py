@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader, Subset
@@ -77,20 +78,45 @@ class HDBSCANDataset:
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
+    # def calculate_min_cluster_size(self):
+    #     standard_size = 10000  # 标准大小
+    #     base_min_cluster_size = 10  # 基础的min_cluster_size值
+    #
+    #     # 获取数据集的大小和特征数
+    #     data_size = len(self.dataset)
+    #     # 假设dataset是二维的，例如：[样本数, 特征数]
+    #     # 如果不是这样，需要根据实际情况调整
+    #     num_features = next(iter(self.dataset))[0].shape[0]
+    #
+    #     # 根据数据大小调整min_cluster_size
+    #     size_factor = data_size / standard_size
+    #     # 根据特征数量调整基础值
+    #     feature_factor = 1 + (num_features - 1) / 10  # 假设每增加10个特征，min_cluster_size增加5%
+    #
+    #     adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
+    #     return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
     def calculate_min_cluster_size(self):
-        standard_size = 10000  # 标准大小
-        base_min_cluster_size = 10  # 基础的min_cluster_size值
+        X_scaled = self.load_and_scale_data()  # 加载并缩放数据
 
-        # 获取数据集的大小和特征数
-        data_size = len(self.dataset)
-        # 假设dataset是二维的，例如：[样本数, 特征数]
-        # 如果不是这样，需要根据实际情况调整
-        num_features = next(iter(self.dataset))[0].shape[0]
+        # 初始化轮廓系数的最大值和最佳min_cluster_size
+        max_silhouette = -1
+        best_min_cluster_size = None
 
-        # 根据数据大小调整min_cluster_size
-        size_factor = data_size / standard_size
-        # 根据特征数量调整基础值
-        feature_factor = 1 + (num_features - 1) / 10  # 假设每增加10个特征，min_cluster_size增加5%
+        # 遍历不同的min_cluster_size值
+        for min_cluster_size in range(5, 51, 5):  # 例如，从5到50，步长为5
+            clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
+            clusterer.fit(X_scaled)
+            labels = clusterer.labels_
 
-        adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
-        return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
+            # 确保聚类结果中有超过一个聚类且不全是噪声
+            if len(set(labels)) > 1 and np.sum(labels != -1) > 1:
+                # 计算轮廓系数
+                silhouette = silhouette_score(X_scaled, labels)
+                if silhouette > max_silhouette:
+                    max_silhouette = silhouette
+                    best_min_cluster_size = min_cluster_size
+
+        if best_min_cluster_size is None:  # 如果没有找到好的min_cluster_size
+            best_min_cluster_size = 5  # 默认值
+
+        return best_min_cluster_size
