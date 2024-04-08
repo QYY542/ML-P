@@ -38,17 +38,9 @@ class HDBSCANDataset:
         cluster_indices, X_scaled = self.compute_hdbscan_clusters()
         distances = self.apply_kmeans_to_clusters(cluster_indices, X_scaled)
 
-        # 0 和 min 的比较
-        high_distance_indices = np.argsort(distances)[:n]
-        high_distance_values = distances[high_distance_indices]
-
-        # 去掉0值样本
-        distances_indices = np.where(distances > 0)[0]
-        distances = distances[distances_indices]
-
         # 选择距离最远和最近的样本
         low_distance_indices = np.argsort(distances)[:n]
-        # high_distance_indices = np.argsort(distances)[-n:]
+        high_distance_indices = np.argsort(distances)[-n:]
         random_indices = np.random.choice(len(self.dataset), n, replace=False)
         random_shadow_indices = np.random.choice(len(self.dataset), n + n, replace=False)
 
@@ -59,7 +51,7 @@ class HDBSCANDataset:
 
         # 获取对应的distance
         low_distance_values = distances[low_distance_indices]
-        # high_distance_values = distances[high_distance_indices]
+        high_distance_values = distances[high_distance_indices]
 
         print("聚类距离小的样本分数:", low_distance_values)
         print("聚类距离大的样本分数:", high_distance_values)
@@ -94,7 +86,7 @@ class HDBSCANDataset:
         # 根据数据大小调整min_cluster_size
         size_factor = data_size / standard_size
         # 根据特征数量调整基础值
-        feature_factor = 1 + (num_features - 1) / 20  # 假设每增加10个特征，min_cluster_size增加2%
+        feature_factor = 1 + (num_features - 1) / 20  # 假设每增加10个特征，min_cluster_size增加5%
 
         adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
         return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
