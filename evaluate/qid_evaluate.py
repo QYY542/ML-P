@@ -26,13 +26,13 @@ class QID_VE:
         self.train_dataset = Subset(self.dataset, train_indices)
         self.test_dataset = Subset(self.dataset, test_indices)
 
-    def train_model(self, X, y, n_estimators=100):
+    def train_model(self, X, y, n_estimators=50):
         # 根据给定的数据训练模型
         model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
         model.fit(X, y)
         return model
 
-    def compute_qid_impacts(self, qid_index, num_trials=10):
+    def compute_qid_impacts(self, qid_index, num_trials=5):
         # 获取训练数据
         train_loader = DataLoader(self.train_dataset, batch_size=len(self.train_dataset), shuffle=False)
         X_train, y_train = next(iter(train_loader))
