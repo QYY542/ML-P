@@ -167,7 +167,6 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
 def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
 
-
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
