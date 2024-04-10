@@ -1,76 +1,64 @@
 from sklearn.metrics.pairwise import cosine_distances
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import DataLoader, Subset
 import numpy as np
 import hdbscan
 
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
-    # low high none
-    def __init__(self, dataset, noise_handling='high'):  # 添加一个参数来控制噪声点的处理方式
+    def __init__(self, dataset):
         self.dataset = dataset
-        self.noise_handling = noise_handling
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        return X
+        scaler = MinMaxScaler()
+        X_scaled = scaler.fit_transform(X)
+        return X_scaled
 
-    def compute_hdbscan_clusters(self, min_cluster_size=30):
+    def compute_hdbscan_clusters(self, min_cluster_size=5):
         X_scaled = self.load_and_scale_data()
-
-        # 确保X_scaled是float64类型
         X_scaled = X_scaled.astype(np.float64)
 
-        # 如果使用余弦距离作为度量，则需要将X_scaled转换为距离矩阵
-        # 注意：转换成距离矩阵后，数据类型应该保持为float64
-        distance_matrix = cosine_distances(X_scaled).astype(np.float64)
-
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
-                                    metric='precomputed',  # 如果你使用的是预计算的距离矩阵
-                                    core_dist_n_jobs=-1)
-        clusterer.fit(distance_matrix)
+        # 使用HDBSCAN计算曼哈顿距离聚类
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='manhattan', algorithm='best', leaf_size=40)
+        clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        distances = np.full(len(X_scaled), np.inf)
-        for label in unique_labels:
-            if label == -1:
-                continue  # 现在我们跳过噪声点的处理，稍后单独处理
-            cluster_points = X_scaled[labels == label]
-            center = cluster_points.mean(axis=0)
-            distances[labels == label] = np.linalg.norm(cluster_points - center, axis=1)
+        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
-        # 将噪声点的距离设置为-1
-        noise_indices = labels == -1
-        distances[noise_indices] = -1
+        distances = np.zeros(len(X_scaled))  # 默认值设置为0
+        for label in unique_labels:
+            if label != -1:
+                cluster_points = X_scaled[labels == label]
+                center = cluster_centers[label]
+                # 计算曼哈顿距离
+                distances[labels == label] = np.sum(np.abs(cluster_points - center), axis=1)
+            else:
+                noise_indices = np.where(labels == -1)[0]
+                for index in noise_indices:
+                    noise_point = X_scaled[index]
+                    distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
+                    distances[index] = np.min(distances_to_centers)
+
         return distances
 
     def get_specific_datasets_and_distances(self, n):
         labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
         distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
 
-        # 仅选择距离大于0的索引作为候选
-        candidate_indices = distances > 0
-        sorted_indices = np.argsort(distances[candidate_indices])
-        actual_indices = np.arange(len(distances))[candidate_indices][sorted_indices]  # 转换回原始索引
+        # 排序并选择距离最小和最大的n个样本
+        sorted_indices = np.argsort(distances)
+        low_distance_indices = sorted_indices[:n]
+        high_distance_indices = sorted_indices[-n:]
 
-        low_distance_indices = actual_indices[:n]
-        high_distance_indices = actual_indices[-n:]
-
-        # 根据noise_handling参数决定是否添加噪声点
-        noise_indices = np.where(labels == -1)[0]
-        if self.noise_handling == 'low':
-            low_distance_indices = np.unique(np.concatenate([low_distance_indices, noise_indices]))
-        elif self.noise_handling == 'high':
-            high_distance_indices = np.unique(np.concatenate([high_distance_indices, noise_indices]))
-
-        # 随机数据集和测试数据集的生成不需要改变
+        # 随机选择数据集和测试数据集
         random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
-        random_shadow_indices = np.random.choice(range(len(self.dataset)), n + n, replace=False)
+        random_shadow_indices = np.random.choice(range(len(self.dataset)), 2*n, replace=False)
 
         # 创建对应的Subset
         low_distance_dataset = Subset(self.dataset, low_distance_indices)

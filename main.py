@@ -211,9 +211,10 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
 
+    dataset_len = len(dataset)
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = 300
+    n = dataset_len // 7
 
     # 获取三类数据集 min max random
     evaluator = HDBSCANDataset(dataset)
