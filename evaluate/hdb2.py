@@ -1,13 +1,22 @@
+import numpy as np
+from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import cosine_distances
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from torch.utils.data import DataLoader, Subset
+import hdbscan
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import DBSCAN
 from torch.utils.data import DataLoader, Subset
 import numpy as np
 import hdbscan
 
 # 添加噪音点的数据集训练出来的数据集隐私风险低
-class HDBSCANDataset:
+class HDBSCANDataset_save2:
     # low high none
-    def __init__(self, dataset, noise_handling='high'):  # 添加一个参数来控制噪声点的处理方式
+    def __init__(self, dataset, noise_handling='none'):  # 添加一个参数来控制噪声点的处理方式
         self.dataset = dataset
         self.noise_handling = noise_handling
 
@@ -15,7 +24,9 @@ class HDBSCANDataset:
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        return X
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        return X_scaled
 
     def compute_hdbscan_clusters(self, min_cluster_size=30):
         X_scaled = self.load_and_scale_data()
