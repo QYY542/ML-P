@@ -21,8 +21,8 @@ class HDBSCANDataset:
         labels = clusterer.labels_
 
         # 找到每个聚类的样本索引
-        unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
-        # unique_labels = np.unique(labels)  # 包含噪声点
+        # unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
+        unique_labels = np.unique(labels)  # 包含噪声点
         cluster_indices = {label: np.where(labels == label)[0] for label in unique_labels}
 
         return cluster_indices, X_scaled
