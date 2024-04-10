@@ -66,7 +66,7 @@ class HDBSCANDataset:
         print("聚类距离随机的样本分数:", random_shadow_values)
 
         # Noise points considered as high risk, thus included in high_distance_dataset
-        high_distance_indices = np.unique(np.concatenate([high_distance_indices, np.where(labels == -1)[0][:n]]))
+        low_distance_indices = np.unique(np.concatenate([high_distance_indices, np.where(labels == -1)[0][:n]]))
 
         low_distance_dataset = Subset(self.dataset, low_distance_indices)
         high_distance_dataset = Subset(self.dataset, high_distance_indices)
