@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, Subset
 import numpy as np
 import hdbscan
 
+
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
     def __init__(self, dataset):
@@ -17,12 +18,13 @@ class HDBSCANDataset:
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
-    def compute_hdbscan_clusters(self, min_cluster_size=5):
+    def compute_hdbscan_clusters(self, min_cluster_size=30):
         X_scaled = self.load_and_scale_data()
         X_scaled = X_scaled.astype(np.float64)
 
         # 使用HDBSCAN计算曼哈顿距离聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='manhattan', algorithm='best', leaf_size=40)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.choose_min_cluster_size(), metric='manhattan',
+                                    algorithm='best', leaf_size=40)
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
@@ -31,18 +33,24 @@ class HDBSCANDataset:
         cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
         distances = np.zeros(len(X_scaled))  # 默认值设置为0
+        # 为每个样本初始化一个距离调整因子，基于其归属概率
+        distance_adjustment_factor = 1 - probabilities  # 归属概率越低，调整因子越大
+
         for label in unique_labels:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
                 center = cluster_centers[label]
-                # 计算曼哈顿距离
-                distances[labels == label] = np.sum(np.abs(cluster_points - center), axis=1)
+                # 计算曼哈顿距离，并应用距离调整因子
+                adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1) * (
+                        1 + distance_adjustment_factor[labels == label])
+                distances[labels == label] = adjusted_distances
             else:
                 noise_indices = np.where(labels == -1)[0]
                 for index in noise_indices:
                     noise_point = X_scaled[index]
                     distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
-                    distances[index] = np.min(distances_to_centers)
+                    # 对噪声点也应用距离调整因子
+                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
 
         return distances
 
@@ -58,7 +66,7 @@ class HDBSCANDataset:
         # 随机选择数据集和测试数据集
         random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
-        random_shadow_indices = np.random.choice(range(len(self.dataset)), 2*n, replace=False)
+        random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
 
         # 创建对应的Subset
         low_distance_dataset = Subset(self.dataset, low_distance_indices)
@@ -76,3 +84,29 @@ class HDBSCANDataset:
         print("聚类距离随机的样本分数:", random_shadow_values)
 
         return low_distance_dataset, high_distance_dataset, random_dataset, test_dataset, random_shadow_dataset
+
+    def choose_min_cluster_size(self):
+        n_samples = len(self.dataset)
+        num_features = next(iter(self.dataset))[0].shape[0]
+        # 基本的min_cluster_size值，作为起点
+        base_size = 5
+
+        # 根据样本数量调整
+        if n_samples < 1000:
+            size_factor = 2
+        elif 1000 <= n_samples < 10000:
+            size_factor = 4
+        else:
+            size_factor = 8
+
+        # 根据特征维度调整
+        if num_features < 10:
+            feature_factor = 1
+        elif 10 <= num_features < 30:
+            feature_factor = 1.5
+        else:
+            feature_factor = 2
+
+        # 计算最终的min_cluster_size
+        min_cluster_size = base_size * size_factor * feature_factor
+        return 30
