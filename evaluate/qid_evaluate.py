@@ -32,7 +32,7 @@ class QID_VE:
         model.fit(X, y)
         return model
 
-    def compute_qid_impacts(self, qid_index, num_trials=5):
+    def compute_qid_impacts(self, qid_index, num_trials=10):
         # 获取训练数据
         train_loader = DataLoader(self.train_dataset, batch_size=len(self.train_dataset), shuffle=False)
         X_train, y_train = next(iter(train_loader))
@@ -47,9 +47,13 @@ class QID_VE:
         for _ in range(num_trials):
             # 打乱特定特征
             X_train_shuffled = X_train.copy()
-            # 生成与特征长度相同的0-1之间的随机值来填充
-            random_values = np.random.uniform(0, 1, X_train_shuffled[:, qid_index].shape)
-            X_train_shuffled[:, qid_index] = random_values
+
+            if num_trials > num_trials // 2:
+                # 生成与特征长度相同的0-1之间的随机值来填充
+                random_values = np.random.uniform(0, 1, X_train_shuffled[:, qid_index].shape)
+                X_train_shuffled[:, qid_index] = random_values
+            elif num_trials < num_trials // 2:
+                np.random.shuffle(X_train_shuffled[:, qid_index])
 
             # 训练打乱特征后的模型并计算评分
             model_shuffled = self.train_model(X_train_shuffled, y_train)
@@ -60,7 +64,6 @@ class QID_VE:
             impacts.append(impact)
 
         return np.mean(impacts)  # 返回多次试验的平均impact值
-
 
 # if __name__ == '__main__':
 #     # dataset = Student("../dataloader/datasets/student/")

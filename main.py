@@ -40,6 +40,12 @@ def test_QID(dataset_name):
         qid_indices = [0, 8, 9, 13]
         dataset = Adult(qid_indices=qid_indices)
 
+
+    # 打印前两个样本
+    for i in range(2):
+        X, target = dataset[i]
+        print(f'Sample {i}: {X}, Target: {target}')
+
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
 
@@ -345,10 +351,6 @@ def prepare_dataset(dataset_name, model_name):
         dataset = Hospital()
         num_classes = 3
 
-    # 打印前两个样本
-    for i in range(2):
-        X, target = dataset[i]
-        print(f'Sample {i}: {X}, Target: {target}')
 
     # 划分目标和影子数据集
     length = len(dataset)
