@@ -44,7 +44,7 @@ def test_QID(dataset_name):
     evaluator.train_test_split()
 
     impacts = []
-    for i in qid_indices:
+    for i in range(4):
         impact = evaluator.compute_qid_impacts(i)
         print(f"Impact for QID at index {i}: {impact}")
         impacts.append(impact)
