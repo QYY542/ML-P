@@ -31,9 +31,14 @@ class HDBSCANDataset:
         distances = np.zeros(len(X_scaled))
 
         for label, indices in cluster_indices.items():
-            cluster_points = X_scaled[indices]
-            kmeans = KMeans(n_clusters=1, random_state=42).fit(cluster_points)
-            distances[indices] = np.linalg.norm(cluster_points - kmeans.cluster_centers_, axis=1)
+            if label == -1:
+                # 将噪声点的距离设置为0
+                distances[indices] = 0
+            else:
+                # 对于非噪声点聚类，正常计算到聚类中心的距离
+                cluster_points = X_scaled[indices]
+                kmeans = KMeans(n_clusters=1, random_state=42).fit(cluster_points)
+                distances[indices] = np.linalg.norm(cluster_points - kmeans.cluster_centers_, axis=1)
 
         return distances
 
@@ -93,7 +98,7 @@ class HDBSCANDataset:
         # 根据数据大小调整min_cluster_size
         size_factor = data_size / standard_size
         # 根据特征数量调整基础值
-        feature_factor = 1 + (num_features - 1) / 10  # 假设每增加10个特征，min_cluster_size增加5%
+        feature_factor = 1 + (num_features - 1) / 50  # 假设每增加10个特征，min_cluster_size增加5%
 
         adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
         return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
