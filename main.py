@@ -202,7 +202,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     elif dataset_name == 'Adult':
         print('Adult_kmeans')
         dataset = Adult()
-        num_classes = 3
+        num_classes = 2
 
     # 打印前两个样本
     for i in range(2):
