@@ -28,44 +28,45 @@ class HDBSCANDataset:
         X_scaled = self.load_and_scale_data()
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='euclidean', core_dist_n_jobs=-1)
         clusterer.fit(X_scaled)
-        return clusterer.labels_, X_scaled
+        return clusterer.labels_, X_scaled, clusterer.probabilities_
 
-    def get_distances_to_cluster_centers(self, labels, X_scaled):
-        unique_labels = np.unique(labels[labels >= 0])  # Excluding noise points for center calculation
-        distances = np.full(len(X_scaled), np.nan)
+    def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
+        unique_labels = np.unique(labels)
+        # Calculate the distance to the nearest cluster center for each point
+        distances = np.full(len(X_scaled), np.inf)
         for label in unique_labels:
+            if label == -1: continue  # Skip noise for now
             cluster_points = X_scaled[labels == label]
-            if len(cluster_points) == 0:
-                continue
             center = cluster_points.mean(axis=0)
             distances[labels == label] = np.linalg.norm(cluster_points - center, axis=1)
-        distances[labels == -1] = np.max(distances)  # Assign max distance to noise points
+        # Consider noise points based on their probability (low probability = high risk)
+        noise_indices = labels == -1
+        distances[noise_indices] = np.max(distances) * (1 - probabilities[noise_indices]) # Scale distance for noise points by their outlier score
         return distances
 
     def get_specific_datasets_and_distances(self, n):
-        labels, X_scaled = self.compute_hdbscan_clusters()
-        distances = self.get_distances_to_cluster_centers(labels, X_scaled)
+        labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
+        distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
 
-        non_noise_indices = np.where(labels != -1)[0]
-        noise_indices = np.where(labels == -1)[0]
-
-        sorted_indices = non_noise_indices[np.argsort(distances[non_noise_indices])]
+        # Use a more nuanced approach to determine high and low risk datasets
+        sorted_indices = np.argsort(distances)  # From lowest to highest risk
         low_distance_indices = sorted_indices[:n]
         high_distance_indices = sorted_indices[-n:]
-        random_indices = np.random.choice(non_noise_indices, n, replace=False)
+        random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
+        test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
+        random_shadow_indices = np.random.choice(range(len(self.dataset)), n + n, replace=False)
 
         # 获取对应的distance
         low_distance_values = distances[low_distance_indices]
         high_distance_values = distances[high_distance_indices]
+        random_shadow_values = distances[random_indices]
 
         print("聚类距离小的样本分数:", low_distance_values)
         print("聚类距离大的样本分数:", high_distance_values)
+        print("聚类距离随机的样本分数:", random_shadow_values)
 
         # Noise points considered as high risk, thus included in high_distance_dataset
-        high_distance_indices = np.concatenate([high_distance_indices, noise_indices[:n]])
-
-        test_indices = np.random.choice(non_noise_indices, n, replace=False)
-        random_shadow_indices = np.random.choice(non_noise_indices, n + n, replace=False)
+        high_distance_indices = np.unique(np.concatenate([high_distance_indices, np.where(labels == -1)[0][:n]]))
 
         low_distance_dataset = Subset(self.dataset, low_distance_indices)
         high_distance_dataset = Subset(self.dataset, high_distance_indices)
