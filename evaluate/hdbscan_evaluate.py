@@ -18,7 +18,7 @@ class HDBSCANDataset:
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
-    def compute_hdbscan_clusters(self, min_cluster_size=30):
+    def compute_hdbscan_clusters(self):
         X_scaled = self.load_and_scale_data()
         X_scaled = X_scaled.astype(np.float64)
         min_cluster_size = self.choose_min_cluster_size()
@@ -110,4 +110,4 @@ class HDBSCANDataset:
 
         # 计算最终的min_cluster_size
         min_cluster_size = base_size * size_factor * feature_factor
-        return 30
+        return min_cluster_size
