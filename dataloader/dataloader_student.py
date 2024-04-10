@@ -14,13 +14,19 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Student(Dataset):
-    def __init__(self, root='./dataloader/datasets/student/') -> None:
+    def __init__(self, root='./dataloader/datasets/student/', qid_indices=None) -> None:
         super().__init__()
         self.root = root
         self.filename = 'student.csv'
+        self.qid_indices = qid_indices
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
+
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['NObeyesdad']
+            df = df[columns_to_keep]
 
         # 分离特征和标签
         self.y = df['Target']

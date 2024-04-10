@@ -11,10 +11,11 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder, M
 
 
 class Hospital(Dataset):
-    def __init__(self) -> None:
+    def __init__(self, root='./dataloader/datasets/hospital/', qid_indices=None) -> None:
         super().__init__()
-        self.root = './dataloader/datasets/hospital/'
+        self.root = root
         self.filename = 'hospital.csv'
+        self.qid_indices = qid_indices
 
         # 加载数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
@@ -23,7 +24,7 @@ class Hospital(Dataset):
         df['readmitted'] = df['readmitted'].map({'NO': 0, '>30': 1, '<30': 2})
 
         # 年龄处理，用区间中点代替区间值
-        age_mapping = {f'[{10*i}-{10*(i+1)})': 5+10*i for i in range(10)}
+        age_mapping = {f'[{10 * i}-{10 * (i + 1)})': 5 + 10 * i for i in range(10)}
         df['age'] = df['age'].map(age_mapping)
 
         # 随机填充缺失值
@@ -41,6 +42,11 @@ class Hospital(Dataset):
         for column in df.select_dtypes(include=['object']).columns:
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
+
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['readmitted']
+            df = df[columns_to_keep]
 
         # 分离特征和标签
         X = df.drop('readmitted', axis=1)

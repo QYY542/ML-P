@@ -20,25 +20,25 @@ def test_QID(dataset_name):
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Gender", "Age at enrollment", "Nationality"]
         qid_indices = [0, 17, 19, 7]
-        dataset = Student()
+        dataset = Student(qid_indices=qid_indices)
 
     elif dataset_name == 'Obesity':
-        dataset = Obesity()
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
+        dataset = Obesity(qid_indices=qid_indices)
 
     elif dataset_name == 'Hospital':
-        dataset = Hospital()
         # 性别（Gender）、年龄（Age）、人种（Race）和体重（Weight）
         qid_indices_names = ["Race", "Gender", "Age", "Weight"]
         qid_indices = [2, 3, 4, 5]
+        dataset = Hospital(qid_indices=qid_indices)
 
     elif dataset_name == 'Adult':
-        dataset = Adult()
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
+        dataset = Adult(qid_indices=qid_indices)
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()

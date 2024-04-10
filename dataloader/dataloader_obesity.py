@@ -6,7 +6,7 @@ import tarfile
 import urllib
 from typing import Any, Callable, List, Optional, Union, Tuple
 import pandas as pd
-from models.define_models import  MLP
+from models.define_models import MLP
 
 import torch
 from torch.utils.data import Dataset
@@ -14,10 +14,11 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Obesity(Dataset):
-    def __init__(self,root = './dataloader/datasets/obesity/') -> None:
+    def __init__(self, root='./dataloader/datasets/obesity/', qid_indices=None) -> None:
         super().__init__()
         self.root = root
         self.filename = 'obesity.csv'
+        self.qid_indices = qid_indices
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
@@ -33,15 +34,17 @@ class Obesity(Dataset):
             label_encoders[feature] = LabelEncoder()
             df[feature] = label_encoders[feature].fit_transform(df[feature])
 
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['NObeyesdad']
+            df = df[columns_to_keep]
+
         # 分离特征和标签
         self.y = df['NObeyesdad']
         df = df.drop('NObeyesdad', axis=1)
 
         # 对数值特征进行标准化
         numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
-
-        # numeric_features = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
-        # scaler = StandardScaler()
         scaler = MinMaxScaler()
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
 

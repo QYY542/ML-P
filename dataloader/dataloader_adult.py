@@ -9,14 +9,15 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import Any, Callable, List, Optional, Union, Tuple
 
-from models.define_models import  MLP
+from models.define_models import MLP
 
 
 class Adult(Dataset):
-    def __init__(self) -> None:
+    def __init__(self, root='./dataloader/datasets/adult/', qid_indices=None) -> None:
         super().__init__()
-        self.root = './dataloader/datasets/adult/'
+        self.root = root
         self.filename = 'adult.csv'
+        self.qid_indices = qid_indices
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
@@ -28,6 +29,11 @@ class Adult(Dataset):
         for column in categorical_columns:
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
+
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['income']
+            df = df[columns_to_keep]
 
         # 分离特征和标签
         X = df.drop('income', axis=1).values
@@ -53,5 +59,3 @@ class Adult(Dataset):
             target = tuple(target) if len(target) > 1 else target[0]
 
         return X, target
-
-
