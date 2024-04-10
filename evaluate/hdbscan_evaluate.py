@@ -21,9 +21,10 @@ class HDBSCANDataset:
     def compute_hdbscan_clusters(self, min_cluster_size=30):
         X_scaled = self.load_and_scale_data()
         X_scaled = X_scaled.astype(np.float64)
+        min_cluster_size = self.choose_min_cluster_size()
 
         # 使用HDBSCAN计算曼哈顿距离聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.choose_min_cluster_size(), metric='manhattan',
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='manhattan',
                                     algorithm='best', leaf_size=40)
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
