@@ -25,7 +25,7 @@ class Student(Dataset):
 
         if qid_indices is not None:
             # 保留qid_indices指定的列以及Target列
-            columns_to_keep = df.columns[qid_indices].tolist() + ['NObeyesdad']
+            columns_to_keep = df.columns[qid_indices].tolist() + ['Target']
             df = df[columns_to_keep]
 
         # 分离特征和标签
