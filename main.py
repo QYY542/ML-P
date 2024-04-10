@@ -18,8 +18,8 @@ from dataloader.dataloader import *
 def test_QID(dataset_name):
     if dataset_name == 'Student':
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
-        qid_indices_names = ["Marital status", "Gender", "Age at enrollment", "Nationality"]
-        qid_indices = [0, 17, 19, 7]
+        qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
+        qid_indices = [0, 7, 17, 19]
         dataset = Student(qid_indices=qid_indices)
 
     elif dataset_name == 'Obesity':
