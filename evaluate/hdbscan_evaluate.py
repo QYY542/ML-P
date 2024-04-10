@@ -24,7 +24,7 @@ class HDBSCANDataset:
         min_cluster_size = self.choose_min_cluster_size()
 
         # 使用HDBSCAN计算曼哈顿距离聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric='manhattan',
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=5, metric='manhattan',
                                     algorithm='best', leaf_size=40)
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
@@ -96,9 +96,9 @@ class HDBSCANDataset:
         if n_samples < 1000:
             size_factor = 2
         elif 1000 <= n_samples < 10000:
-            size_factor = 4
+            size_factor = 3
         else:
-            size_factor = 8
+            size_factor = 6
 
         # 根据特征维度调整
         if num_features < 10:
@@ -110,4 +110,5 @@ class HDBSCANDataset:
 
         # 计算最终的min_cluster_size
         min_cluster_size = base_size * size_factor * feature_factor
-        return min_cluster_size
+        print(min_cluster_size)
+        return 30
