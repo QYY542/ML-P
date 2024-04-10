@@ -21,7 +21,8 @@ class HDBSCANDataset:
         labels = clusterer.labels_
 
         # 找到每个聚类的样本索引
-        unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
+        # unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
+        unique_labels = np.unique(labels)  # 包含噪声点
         cluster_indices = {label: np.where(labels == label)[0] for label in unique_labels}
 
         return cluster_indices, X_scaled
@@ -79,43 +80,43 @@ class HDBSCANDataset:
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
-    # def calculate_min_cluster_size(self):
-    #     standard_size = 10000  # 标准大小
-    #     base_min_cluster_size = 10  # 基础的min_cluster_size值
+    def calculate_min_cluster_size(self):
+        standard_size = 10000  # 标准大小
+        base_min_cluster_size = 10  # 基础的min_cluster_size值
+
+        # 获取数据集的大小和特征数
+        data_size = len(self.dataset)
+        # 假设dataset是二维的，例如：[样本数, 特征数]
+        # 如果不是这样，需要根据实际情况调整
+        num_features = next(iter(self.dataset))[0].shape[0]
+
+        # 根据数据大小调整min_cluster_size
+        size_factor = data_size / standard_size
+        # 根据特征数量调整基础值
+        feature_factor = 1 + (num_features - 1) / 10  # 假设每增加10个特征，min_cluster_size增加5%
+
+        adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
+        return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
+    # def calculate_min_cluster_size(self, sample_size=0.1, min_size=5, max_size=50, step=5):
+    #     X_scaled = self.load_and_scale_data()  # 加载并缩放数据
     #
-    #     # 获取数据集的大小和特征数
-    #     data_size = len(self.dataset)
-    #     # 假设dataset是二维的，例如：[样本数, 特征数]
-    #     # 如果不是这样，需要根据实际情况调整
-    #     num_features = next(iter(self.dataset))[0].shape[0]
+    #     # 对数据进行随机采样
+    #     X_sample, _ = train_test_split(X_scaled, test_size=sample_size, random_state=42)
     #
-    #     # 根据数据大小调整min_cluster_size
-    #     size_factor = data_size / standard_size
-    #     # 根据特征数量调整基础值
-    #     feature_factor = 1 + (num_features - 1) / 10  # 假设每增加10个特征，min_cluster_size增加5%
+    #     max_silhouette = -1
+    #     best_min_cluster_size = None
     #
-    #     adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
-    #     return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
-    def calculate_min_cluster_size(self, sample_size=0.1, min_size=5, max_size=50, step=5):
-        X_scaled = self.load_and_scale_data()  # 加载并缩放数据
-
-        # 对数据进行随机采样
-        X_sample, _ = train_test_split(X_scaled, test_size=sample_size, random_state=42)
-
-        max_silhouette = -1
-        best_min_cluster_size = None
-
-        # 在采样数据上遍历不同的min_cluster_size值
-        for min_cluster_size in range(min_size, max_size + 1, step):
-            clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
-            clusterer.fit(X_sample)
-            labels = clusterer.labels_
-
-            # 如果有超过一个聚类且不全是噪声
-            if len(set(labels)) > 1 and np.sum(labels != -1) > 1:
-                silhouette = silhouette_score(X_sample, labels)
-                if silhouette > max_silhouette:
-                    max_silhouette = silhouette
-                    best_min_cluster_size = min_cluster_size
-
-        return best_min_cluster_size if best_min_cluster_size else min_size
+    #     # 在采样数据上遍历不同的min_cluster_size值
+    #     for min_cluster_size in range(min_size, max_size + 1, step):
+    #         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
+    #         clusterer.fit(X_sample)
+    #         labels = clusterer.labels_
+    #
+    #         # 如果有超过一个聚类且不全是噪声
+    #         if len(set(labels)) > 1 and np.sum(labels != -1) > 1:
+    #             silhouette = silhouette_score(X_sample, labels)
+    #             if silhouette > max_silhouette:
+    #                 max_silhouette = silhouette
+    #                 best_min_cluster_size = min_cluster_size
+    #
+    #     return best_min_cluster_size if best_min_cluster_size else min_size

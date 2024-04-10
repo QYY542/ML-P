@@ -44,16 +44,19 @@ class QID_VE:
         score_original = cross_val_score(model_original, X_train, y_train, cv=5).mean()
 
         impacts = []
-        for _ in range(num_trials):
+        for i in range(num_trials):
             # 打乱特定特征
             X_train_shuffled = X_train.copy()
 
-            if num_trials > num_trials // 2:
+            if i > num_trials // 2:
                 # 生成与特征长度相同的0-1之间的随机值来填充
                 random_values = np.random.uniform(0, 1, X_train_shuffled[:, qid_index].shape)
                 X_train_shuffled[:, qid_index] = random_values
-            elif num_trials < num_trials // 2:
-                np.random.shuffle(X_train_shuffled[:, qid_index])
+            elif i < num_trials // 2:
+                # 打乱特定特征
+                original_values = X_train[:, qid_index]
+                shuffled_values = np.random.choice(original_values, size=original_values.shape, replace=True)
+                X_train_shuffled[:, qid_index] = shuffled_values
 
             # 训练打乱特征后的模型并计算评分
             model_shuffled = self.train_model(X_train_shuffled, y_train)
