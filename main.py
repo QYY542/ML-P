@@ -287,8 +287,8 @@ def draw_tpr(result_path, dataset_name, model_name):
     ax.set_ylabel('True Positive Rate (TPR)')
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.set_xlim([1e-3, 1e0])
-    ax.set_ylim([1e-3, 1e0])
+    ax.set_xlim([1e-2, 1e0])
+    ax.set_ylim([1e-2, 1e0])
     ax.legend(loc='best')
 
     # 添加网格
