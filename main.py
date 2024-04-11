@@ -235,7 +235,7 @@ def darw(result_path):
     ax.set_xticks(np.arange(1, len(datasets) + 1))
     ax.set_xticklabels(datasets)
     ax.legend()
-    plt.savefig('/mnt/data/predicted_probability_distribution.png')
+    plt.savefig('./dataloader/predicted_probability_distribution.png')
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
