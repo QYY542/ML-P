@@ -195,7 +195,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
 
-def darw(result_path):
+def draw(result_path):
     result_paths = [
         result_path + "_min.p",
         result_path + "_max.p",
@@ -203,36 +203,57 @@ def darw(result_path):
         result_path + "_random.p"
     ]
     datasets = ["MIN", "MAX", "NOISE", "RANDOM"]
-    probabilities = []
-    means = []
+    correct_probabilities = []
+    incorrect_probabilities = []
+    means_correct = []
+    means_incorrect = []
+
     for path in result_paths:
         with open(path, "rb") as f:
             final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
+
         # 筛选出预测正确的样本的预测概率
         correct_probs = [prob for prob, predict, real in
                          zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict == real]
-        probabilities.append(correct_probs)
-        # 计算平均值
-        means.append(np.mean(correct_probs))
+        correct_probabilities.append(correct_probs)
+        means_correct.append(np.mean(correct_probs))
+
+        # 筛选出预测错误的样本的预测概率
+        incorrect_probs = [prob for prob, predict, real in
+                           zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict != real]
+        incorrect_probabilities.append(incorrect_probs)
+        means_incorrect.append(np.mean(incorrect_probs) if incorrect_probs else 0)
 
     # 绘制预测概率的分布图
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # 为每个数据集绘制预测概率分布
-    parts = ax.violinplot(probabilities, showmeans=False, showmedians=False, showextrema=False)
-    for pc in parts['bodies']:
+    # 为每个数据集绘制预测正确的样本的预测概率分布
+    parts_correct = ax.violinplot(correct_probabilities, positions=np.arange(1, len(datasets) * 2, 2) - 0.15,
+                                  showmeans=False, showmedians=False, showextrema=False)
+    for pc in parts_correct['bodies']:
         pc.set_facecolor('#DDA0DD')
         pc.set_edgecolor('black')
         pc.set_alpha(1)
 
+    # 为每个数据集绘制预测错误的样本的预测概率分布
+    parts_incorrect = ax.violinplot(incorrect_probabilities, positions=np.arange(1, len(datasets) * 2, 2) + 0.15,
+                                    showmeans=False, showmedians=False, showextrema=False)
+    for pc in parts_incorrect['bodies']:
+        pc.set_facecolor('#1E90FF')
+        pc.set_edgecolor('black')
+        pc.set_alpha(1)
+
     # 标出平均值
-    ax.scatter(range(1, len(datasets) + 1), means, marker='o', color='red', s=30, zorder=3, label='Mean Probability')
+    ax.scatter(np.arange(1, len(datasets) * 2, 2) - 0.15, means_correct, marker='o', color='red', s=30, zorder=3,
+               label='Mean Probability (Correct)')
+    ax.scatter(np.arange(1, len(datasets) * 2, 2) + 0.15, means_incorrect, marker='o', color='blue', s=30, zorder=3,
+               label='Mean Probability (Incorrect)')
 
     # 添加一些图形属性来增加可读性
-    ax.set_title('Predicted Probability Distribution for Correct Predictions Across Datasets')
+    ax.set_title('Predicted Probability Distribution Across Datasets')
     ax.set_xlabel('Dataset')
     ax.set_ylabel('Predicted Probability')
-    ax.set_xticks(np.arange(1, len(datasets) + 1))
+    ax.set_xticks(np.arange(1, len(datasets) * 2, 2))
     ax.set_xticklabels(datasets)
     ax.legend()
     plt.savefig('./dataloader/predicted_probability_distribution.png')
