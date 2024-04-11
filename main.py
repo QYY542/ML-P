@@ -327,6 +327,11 @@ def main():
         # ====HDBSCAN聚类分析==== #
         print("开始HDBSCAN聚类分析...")
         test_acc_min, test_acc_max, test_acc_noise, test_acc_random = test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
+        cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
+        mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
+        std_cluster_success_rate = (sum(
+            (x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
+            cluster_attack_success_rates)) ** 0.5
 
         # ====MIA分析==== #
         print("开始MIA分析...")
@@ -336,7 +341,7 @@ def main():
         print(f"QID总风险的标准差: {std_impact}")
         print(f"MIA攻击准确率为: {test_acc}")
 
-        comprehensive_privacy_risk_score = test_acc * (1 + std_impact)
+        comprehensive_privacy_risk_score = test_acc * (1 + std_impact) * (1 + std_cluster_success_rate)
         print(f"数据集的综合隐私评分为: {comprehensive_privacy_risk_score}")
 
 
