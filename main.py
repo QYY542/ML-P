@@ -350,17 +350,25 @@ def main():
         with open(result_path, "rb") as f:
             final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
 
-        # 计算每个样本的隐私风险分数，这里简化计算为预测概率与真实标签之间的绝对差异
-        risk_scores = [abs(prob - real) for prob, real in zip(final_train_probabe, final_train_gndtrth)]
+        # 找到预测标签与真实标签一致的样本的索引
+        correct_predictions_indices = [i for i, (predict, real) in
+                                       enumerate(zip(final_train_predict, final_train_gndtrth)) if predict == real]
 
-        # 找到隐私风险最高的前10个样本的索引
-        top_10_risk_indices = sorted(range(len(risk_scores)), key=lambda i: risk_scores[i], reverse=True)[:10]
+        # 提取预测正确的样本的预测概率
+        correct_probabilities = [final_train_probabe[i] for i in correct_predictions_indices]
 
-        # 获取这10个样本的具体信息
-        top_10_risk_samples = [(i, final_train_gndtrth[i], final_train_predict[i], final_train_probabe[i]) for i in
-                               top_10_risk_indices]
+        # 根据预测概率排序，找到预测概率最高的前10个样本的索引（在预测正确的子集中）
+        top_10_highest_prob_indices = sorted(range(len(correct_probabilities)), key=lambda i: correct_probabilities[i],
+                                             reverse=True)[:10]
 
-        for i, (index, gndtrth, predict, probabe) in enumerate(top_10_risk_samples, 1):
+        # 从原始的样本集中获取这10个样本的详细信息
+        top_10_highest_prob_samples = [(correct_predictions_indices[i],
+                                        final_train_gndtrth[correct_predictions_indices[i]],
+                                        final_train_predict[correct_predictions_indices[i]],
+                                        final_train_probabe[correct_predictions_indices[i]]) for i in
+                                       top_10_highest_prob_indices]
+
+        for i, (index, gndtrth, predict, probabe) in enumerate(top_10_highest_prob_samples, 1):
             print(f"样本 {i}: 索引 {index}, 真实标签 {gndtrth}, 预测标签 {predict}, 预测概率 {probabe}")
 
         # 总结
