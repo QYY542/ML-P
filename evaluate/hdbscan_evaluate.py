@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import pickle
 import torch.nn.functional as F
 import numpy as np
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import f1_score, roc_auc_score, roc_curve
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset

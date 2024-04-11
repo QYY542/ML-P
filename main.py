@@ -1,6 +1,7 @@
 import argparse
 
 import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve
 
 from evaluate.hdbscan_evaluate import HDBSCANDataset, evaluate_attack_model, test_hdbscan_mia, get_attack_dataset_with_shadow_hdbscan
 from evaluate.mia_evaluate import *
@@ -191,6 +192,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes)
 
     draw(result_path,dataset_name, model_name)
+    draw_tpr(result_path,dataset_name, model_name)
 
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
@@ -257,6 +259,42 @@ def draw(result_path,dataset_name, model_name):
     ax.set_xticklabels(datasets)
     ax.legend()
     plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
+
+
+def draw_tpr(result_path, dataset_name, model_name, target_fpr=0.05):
+    result_paths = [
+        result_path + "_min.p",
+        result_path + "_max.p",
+        result_path + "_noise.p",
+        result_path + "_random.p"
+    ]
+    datasets = ["MIN", "MAX", "NOISE", "RANDOM"]
+    tpr_at_target_fpr = []
+
+    for path in result_paths:
+        with open(path, "rb") as f:
+            final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
+
+        # 计算ROC曲线
+        fpr, tpr, thresholds = roc_curve(final_train_gndtrth, final_train_probabe)
+
+        # 找到最接近目标FPR的索引
+        closest_fpr_idx = np.abs(fpr - target_fpr).argmin()
+        tpr_at_target_fpr.append(tpr[closest_fpr_idx])
+
+    # 绘制在特定FPR下的TPR
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(datasets, tpr_at_target_fpr, color=['#DDA0DD', '#1E90FF', '#FFD700', '#87CEEB'])
+
+    # 标出TPR值
+    for i, v in enumerate(tpr_at_target_fpr):
+        ax.text(i, v + 0.02, "%.3f" % v, ha='center', va='bottom', fontsize=12)
+
+    ax.set_title('True Positive Rate at {:.1%} False Positive Rate'.format(target_fpr))
+    ax.set_xlabel('Dataset')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_ylim([0, 1])
+    plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_tpr_at_low_fpr.png")
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
