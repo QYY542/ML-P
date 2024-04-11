@@ -108,151 +108,151 @@ class KmeansDataset:
         return elbow_index + 1  # 由于聚类数不能为0，所以加1
 
 
-def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
-    # 加载攻击模型
-    attack_model = ShadowAttackModel(num_classes)
-    attack_model.load_state_dict(torch.load(model_path, map_location=attack_model.device))
-    attack_model.eval()
-
-    correct = 0
-    total = 0
-    final_test_ground_truth = []
-    final_test_prediction = []
-    final_test_probability = []
-
-    with torch.no_grad():
-        with open(test_set_path, "rb") as f:
-            while True:
-                try:
-                    output, prediction, members = pickle.load(f)
-                    # 确保数据在正确的设备上
-                    output, prediction, members = output.to(attack_model.device), prediction.to(
-                        attack_model.device), members.to(attack_model.device)
-
-                    results = attack_model(output, prediction)
-                    _, predicted = results.max(1)
-                    total += members.size(0)
-                    correct += predicted.eq(members).sum().item()
-                    probabilities = F.softmax(results, dim=1)
-
-                    if epoch:  # 如果有epoch参数，保存详细结果
-                        final_test_ground_truth.append(members)
-                        final_test_prediction.append(predicted)
-                        final_test_probability.append(probabilities[:, 1])
-
-                except EOFError:
-                    break
-
-    if epoch:  # 处理和保存测试结果
-        final_test_ground_truth = torch.cat(final_test_ground_truth, dim=0).cpu().numpy()
-        final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
-        final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
-
-        test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
-        test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
-
-        with open(result_path, "wb") as f:
-            pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
-
-        print("Saved Attack Test Ground Truth and Predict Sets")
-        print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
-
-    test_accuracy = 1.0 * correct / total
-    print('Test Acc: %.3f%% (%d/%d)' % (100. * test_accuracy, correct, total))
-
-    final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
-    return final_result
-
-
-def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
-                    shadow_model, mode, model_name, num_features, kmeans_mode=""):
-    # 进行MIA评估 黑盒+Shadow辅助数据集
-    if mode == 0:
-        attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
-                     attack_trainloader,
-                     attack_testloader,
-                     target_model, shadow_model, attack_model, 1, model_name, num_features)
-    # 进行MIA评估 黑盒+Partial辅助数据集
-    elif mode == 1:
-        attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
-                     attack_testloader,
-                     target_model,
-                     attack_model, 1, model_name, num_features)
-
-
-def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max,
-                                          target_train_noise, target_test_noise, target_train_random,
-                                          target_test_random, shadow_train, shadow_test, batch_size=64):
-    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max,mem_test_noise, nonmem_test_noise, mem_test_random, nonmem_test_random = list(
-        shadow_train), list(shadow_test), list(target_train_min), list(
-        target_test_min), list(target_train_max), list(target_test_max),list(target_train_noise), list(target_test_noise), list(target_train_random), list(
-        target_test_random)
-
-    for i in range(len(mem_train)):
-        mem_train[i] = mem_train[i] + (1,)
-    for i in range(len(nonmem_train)):
-        nonmem_train[i] = nonmem_train[i] + (0,)
-
-    for i in range(len(nonmem_test_min)):
-        nonmem_test_min[i] = nonmem_test_min[i] + (0,)
-    for i in range(len(mem_test_min)):
-        mem_test_min[i] = mem_test_min[i] + (1,)
-
-    for i in range(len(nonmem_test_max)):
-        nonmem_test_max[i] = nonmem_test_max[i] + (0,)
-    for i in range(len(mem_test_max)):
-        mem_test_max[i] = mem_test_max[i] + (1,)
-
-    for i in range(len(nonmem_test_noise)):
-        nonmem_test_noise[i] = nonmem_test_noise[i] + (0,)
-    for i in range(len(mem_test_noise)):
-        mem_test_noise[i] = mem_test_noise[i] + (1,)
-
-    for i in range(len(nonmem_test_random)):
-        nonmem_test_random[i] = nonmem_test_random[i] + (0,)
-    for i in range(len(mem_test_random)):
-        mem_test_random[i] = mem_test_random[i] + (1,)
-
-    train_length = min(len(mem_train), len(nonmem_train))
-    test_length = min(len(mem_test_min), len(nonmem_test_min))
-
-    mem_train, _ = torch.utils.data.random_split(mem_train, [train_length, len(mem_train) - train_length])
-    non_mem_train, _ = torch.utils.data.random_split(nonmem_train, [train_length, len(nonmem_train) - train_length])
-
-    mem_test_min, _ = torch.utils.data.random_split(mem_test_min, [test_length, len(mem_test_min) - test_length])
-    non_mem_test_min, _ = torch.utils.data.random_split(nonmem_test_min,
-                                                        [test_length, len(nonmem_test_min) - test_length])
-
-    mem_test_max, _ = torch.utils.data.random_split(mem_test_max, [test_length, len(mem_test_max) - test_length])
-    non_mem_test_max, _ = torch.utils.data.random_split(nonmem_test_max,
-                                                        [test_length, len(nonmem_test_max) - test_length])
-
-    mem_test_noise, _ = torch.utils.data.random_split(mem_test_noise, [test_length, len(mem_test_noise) - test_length])
-    non_mem_test_noise, _ = torch.utils.data.random_split(nonmem_test_noise,
-                                                        [test_length, len(nonmem_test_noise) - test_length])
-
-    mem_test_random, _ = torch.utils.data.random_split(mem_test_random,
-                                                       [test_length, len(mem_test_random) - test_length])
-    non_mem_test_random, _ = torch.utils.data.random_split(nonmem_test_random,
-                                                           [test_length, len(nonmem_test_random) - test_length])
-
-    attack_train = mem_train + non_mem_train
-    attack_test_min = mem_test_min + non_mem_test_min
-    attack_test_max = mem_test_max + non_mem_test_max
-    attack_test_noise = mem_test_noise + non_mem_test_noise
-    attack_test_random = mem_test_random + non_mem_test_random
-
-    attack_trainloader = torch.utils.data.DataLoader(
-        attack_train, batch_size=batch_size, shuffle=True, num_workers=2)
-    attack_min_testloader = torch.utils.data.DataLoader(
-        attack_test_min, batch_size=batch_size, shuffle=True, num_workers=2)
-    attack_max_testloader = torch.utils.data.DataLoader(
-        attack_test_max, batch_size=batch_size, shuffle=True, num_workers=2)
-    attack_noise_testloader = torch.utils.data.DataLoader(
-        attack_test_noise, batch_size=batch_size, shuffle=True, num_workers=2)
-    attack_random_testloader = torch.utils.data.DataLoader(
-        attack_test_random, batch_size=batch_size, shuffle=True, num_workers=2)
-
-    return attack_trainloader, attack_min_testloader, attack_max_testloader, attack_noise_testloader, attack_random_testloader
+# def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
+#     # 加载攻击模型
+#     attack_model = ShadowAttackModel(num_classes)
+#     attack_model.load_state_dict(torch.load(model_path, map_location=attack_model.device))
+#     attack_model.eval()
+#
+#     correct = 0
+#     total = 0
+#     final_test_ground_truth = []
+#     final_test_prediction = []
+#     final_test_probability = []
+#
+#     with torch.no_grad():
+#         with open(test_set_path, "rb") as f:
+#             while True:
+#                 try:
+#                     output, prediction, members = pickle.load(f)
+#                     # 确保数据在正确的设备上
+#                     output, prediction, members = output.to(attack_model.device), prediction.to(
+#                         attack_model.device), members.to(attack_model.device)
+#
+#                     results = attack_model(output, prediction)
+#                     _, predicted = results.max(1)
+#                     total += members.size(0)
+#                     correct += predicted.eq(members).sum().item()
+#                     probabilities = F.softmax(results, dim=1)
+#
+#                     if epoch:  # 如果有epoch参数，保存详细结果
+#                         final_test_ground_truth.append(members)
+#                         final_test_prediction.append(predicted)
+#                         final_test_probability.append(probabilities[:, 1])
+#
+#                 except EOFError:
+#                     break
+#
+#     if epoch:  # 处理和保存测试结果
+#         final_test_ground_truth = torch.cat(final_test_ground_truth, dim=0).cpu().numpy()
+#         final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
+#         final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
+#
+#         test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
+#         test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
+#
+#         with open(result_path, "wb") as f:
+#             pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
+#
+#         print("Saved Attack Test Ground Truth and Predict Sets")
+#         print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
+#
+#     test_accuracy = 1.0 * correct / total
+#     print('Test Acc: %.3f%% (%d/%d)' % (100. * test_accuracy, correct, total))
+#
+#     final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
+#     return final_result
+#
+#
+# def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
+#                     shadow_model, mode, model_name, num_features, kmeans_mode=""):
+#     # 进行MIA评估 黑盒+Shadow辅助数据集
+#     if mode == 0:
+#         attack_model = ShadowAttackModel(num_classes)
+#         attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+#                      attack_trainloader,
+#                      attack_testloader,
+#                      target_model, shadow_model, attack_model, 1, model_name, num_features)
+#     # 进行MIA评估 黑盒+Partial辅助数据集
+#     elif mode == 1:
+#         attack_model = PartialAttackModel(num_classes)
+#         attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+#                      attack_testloader,
+#                      target_model,
+#                      attack_model, 1, model_name, num_features)
+#
+#
+# def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max,
+#                                           target_train_noise, target_test_noise, target_train_random,
+#                                           target_test_random, shadow_train, shadow_test, batch_size=64):
+#     mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max,mem_test_noise, nonmem_test_noise, mem_test_random, nonmem_test_random = list(
+#         shadow_train), list(shadow_test), list(target_train_min), list(
+#         target_test_min), list(target_train_max), list(target_test_max),list(target_train_noise), list(target_test_noise), list(target_train_random), list(
+#         target_test_random)
+#
+#     for i in range(len(mem_train)):
+#         mem_train[i] = mem_train[i] + (1,)
+#     for i in range(len(nonmem_train)):
+#         nonmem_train[i] = nonmem_train[i] + (0,)
+#
+#     for i in range(len(nonmem_test_min)):
+#         nonmem_test_min[i] = nonmem_test_min[i] + (0,)
+#     for i in range(len(mem_test_min)):
+#         mem_test_min[i] = mem_test_min[i] + (1,)
+#
+#     for i in range(len(nonmem_test_max)):
+#         nonmem_test_max[i] = nonmem_test_max[i] + (0,)
+#     for i in range(len(mem_test_max)):
+#         mem_test_max[i] = mem_test_max[i] + (1,)
+#
+#     for i in range(len(nonmem_test_noise)):
+#         nonmem_test_noise[i] = nonmem_test_noise[i] + (0,)
+#     for i in range(len(mem_test_noise)):
+#         mem_test_noise[i] = mem_test_noise[i] + (1,)
+#
+#     for i in range(len(nonmem_test_random)):
+#         nonmem_test_random[i] = nonmem_test_random[i] + (0,)
+#     for i in range(len(mem_test_random)):
+#         mem_test_random[i] = mem_test_random[i] + (1,)
+#
+#     train_length = min(len(mem_train), len(nonmem_train))
+#     test_length = min(len(mem_test_min), len(nonmem_test_min))
+#
+#     mem_train, _ = torch.utils.data.random_split(mem_train, [train_length, len(mem_train) - train_length])
+#     non_mem_train, _ = torch.utils.data.random_split(nonmem_train, [train_length, len(nonmem_train) - train_length])
+#
+#     mem_test_min, _ = torch.utils.data.random_split(mem_test_min, [test_length, len(mem_test_min) - test_length])
+#     non_mem_test_min, _ = torch.utils.data.random_split(nonmem_test_min,
+#                                                         [test_length, len(nonmem_test_min) - test_length])
+#
+#     mem_test_max, _ = torch.utils.data.random_split(mem_test_max, [test_length, len(mem_test_max) - test_length])
+#     non_mem_test_max, _ = torch.utils.data.random_split(nonmem_test_max,
+#                                                         [test_length, len(nonmem_test_max) - test_length])
+#
+#     mem_test_noise, _ = torch.utils.data.random_split(mem_test_noise, [test_length, len(mem_test_noise) - test_length])
+#     non_mem_test_noise, _ = torch.utils.data.random_split(nonmem_test_noise,
+#                                                         [test_length, len(nonmem_test_noise) - test_length])
+#
+#     mem_test_random, _ = torch.utils.data.random_split(mem_test_random,
+#                                                        [test_length, len(mem_test_random) - test_length])
+#     non_mem_test_random, _ = torch.utils.data.random_split(nonmem_test_random,
+#                                                            [test_length, len(nonmem_test_random) - test_length])
+#
+#     attack_train = mem_train + non_mem_train
+#     attack_test_min = mem_test_min + non_mem_test_min
+#     attack_test_max = mem_test_max + non_mem_test_max
+#     attack_test_noise = mem_test_noise + non_mem_test_noise
+#     attack_test_random = mem_test_random + non_mem_test_random
+#
+#     attack_trainloader = torch.utils.data.DataLoader(
+#         attack_train, batch_size=batch_size, shuffle=True, num_workers=2)
+#     attack_min_testloader = torch.utils.data.DataLoader(
+#         attack_test_min, batch_size=batch_size, shuffle=True, num_workers=2)
+#     attack_max_testloader = torch.utils.data.DataLoader(
+#         attack_test_max, batch_size=batch_size, shuffle=True, num_workers=2)
+#     attack_noise_testloader = torch.utils.data.DataLoader(
+#         attack_test_noise, batch_size=batch_size, shuffle=True, num_workers=2)
+#     attack_random_testloader = torch.utils.data.DataLoader(
+#         attack_test_random, batch_size=batch_size, shuffle=True, num_workers=2)
+#
+#     return attack_trainloader, attack_min_testloader, attack_max_testloader, attack_noise_testloader, attack_random_testloader
