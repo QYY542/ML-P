@@ -190,12 +190,12 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     print("========RANDOM_dataset========")
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes, 1)
 
-    draw(result_path)
+    draw(result_path,dataset_name, model_name)
 
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
 
-def draw(result_path):
+def draw(result_path,dataset_name, model_name):
     result_paths = [
         result_path + "_min.p",
         result_path + "_max.p",
@@ -256,7 +256,7 @@ def draw(result_path):
     ax.set_xticks(np.arange(1, len(datasets) * 2, 2))
     ax.set_xticklabels(datasets)
     ax.legend()
-    plt.savefig('./dataloader/predicted_probability_distribution.png')
+    plt.savefig("./dataloader/img/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
