@@ -338,6 +338,7 @@ def main():
         test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                  target_model, shadow_model, mode, model_name, num_features)
 
+        print(f"聚类总风险的标准差: {std_cluster_success_rate}")
         print(f"QID总风险的标准差: {std_impact}")
         print(f"MIA攻击准确率为: {test_acc}")
 
