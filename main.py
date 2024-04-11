@@ -90,7 +90,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     dataset_len = len(dataset)
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = dataset_len // 8
+    n = dataset_len // 7
     if n >= 2000:
         n = 2000
 
