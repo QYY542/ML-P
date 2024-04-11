@@ -47,7 +47,7 @@ class HDBSCANDataset:
                 cluster_points = X_scaled[labels == label]
                 center = cluster_centers[label]
                 # 计算余弦距离，并应用距离调整因子
-                adjusted_distances = [distance.cosine(cp, center) * (1 + distance_adjustment_factor[idx]) for idx, cp in enumerate(cluster_points)]
+                adjusted_distances = [distance.cosine(cp, center) for idx, cp in enumerate(cluster_points)]
                 distances[labels == label] = adjusted_distances
             else:
                 noise_indices = np.where(labels == -1)[0]
@@ -56,7 +56,7 @@ class HDBSCANDataset:
                     noise_point = X_scaled[index]
                     distances_to_centers = [distance.cosine(noise_point, center) for center in cluster_centers.values()]
                     # 对噪声点也应用距离调整因子
-                    distances[index] = min(distances_to_centers) * (1 + distance_adjustment_factor[index])
+                    distances[index] = min(distances_to_centers)
 
         return distances
 
