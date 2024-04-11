@@ -35,7 +35,7 @@ class HDBSCANDataset:
         clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size,
                                     metric='precomputed',  # 使用预计算的距离矩阵
                                     gen_min_span_tree=True)
-        clusterer.fit(distance_matrix)
+        clusterer.fit(distance_matrix.astype('float64'))
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
