@@ -124,7 +124,7 @@ class HDBSCANDataset:
         print("噪音点距离最大的样本分数：", selected_noise_distances)
         print("聚类距离随机的样本分数:", random_shadow_values)
 
-        return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset
+        return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset, distances
 
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
     # 加载攻击模型

@@ -95,7 +95,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
 
     # 获取三类数据集 min max random
     evaluator = HDBSCANDataset(dataset)
-    min_dataset, max_dataset, noise_dataset, random_dataset, test_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
+    min_dataset, max_dataset, noise_dataset, random_dataset, test_dataset, random_dataset_shadow, distances = evaluator.get_specific_datasets_and_distances(n)
     num_features = next(iter(dataset))[0].shape[0]
     each_length = n
 
@@ -188,7 +188,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     print("========RANDOM_dataset========")
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes, 1)
 
-    return test_acc_min, test_acc_max, test_acc_noise, test_acc_random
+    return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
@@ -312,6 +312,7 @@ def main():
     elif args.evaluate_type == 1:
         test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
 
+
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
@@ -326,7 +327,7 @@ def main():
 
         # ====HDBSCAN聚类分析==== #
         print("开始HDBSCAN聚类分析...")
-        test_acc_min, test_acc_max, test_acc_noise, test_acc_random = test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
+        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
         cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
         mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
         std_cluster_success_rate = (sum(
@@ -342,9 +343,28 @@ def main():
         if args.train_shadow:
             train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
 
-        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
-                 target_model, shadow_model, mode, model_name, num_features)
+        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,target_model, shadow_model, mode, model_name, num_features)
 
+        result_path = TARGET_PATH + "_meminf_attack0.p"
+        # 打开并读取文件内容
+        with open(result_path, "rb") as f:
+            final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
+
+        # 计算每个样本的隐私风险分数，这里简化计算为预测概率与真实标签之间的绝对差异
+        risk_scores = [abs(prob - real) for prob, real in zip(final_train_probabe, final_train_gndtrth)]
+
+        # 找到隐私风险最高的前10个样本的索引
+        top_10_risk_indices = sorted(range(len(risk_scores)), key=lambda i: risk_scores[i], reverse=True)[:10]
+
+        # 获取这10个样本的具体信息
+        top_10_risk_samples = [(i, final_train_gndtrth[i], final_train_predict[i], final_train_probabe[i]) for i in
+                               top_10_risk_indices]
+
+        for i, (index, gndtrth, predict, probabe) in enumerate(top_10_risk_samples, 1):
+            print(f"样本 {i}: 索引 {index}, 真实标签 {gndtrth}, 预测标签 {predict}, 预测概率 {probabe}")
+
+        # 总结
+        print("test_acc_min, test_acc_max, test_acc_noise, test_acc_random", test_acc_min, test_acc_max, test_acc_noise, test_acc_random)
         print(f"聚类总风险的标准差: {std_cluster_success_rate}")
         print(f"QID总风险的标准差: {std_impact}")
         print(f"MIA攻击准确率为: {test_acc}")
