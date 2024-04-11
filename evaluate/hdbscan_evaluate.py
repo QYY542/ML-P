@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from evaluate.mia_evaluate import attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
-from sklearn.cluster import HDBSCAN
+import hdbscan
 from scipy.spatial import distance
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
@@ -30,7 +30,7 @@ class HDBSCANDataset:
         print("min_cluster_size = ", self.min_cluster_size)
 
         # 使用HDBSCAN计算余弦距离聚类
-        clusterer = HDBSCAN(min_cluster_size=self.min_cluster_size)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='manhattan')
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
@@ -39,8 +39,6 @@ class HDBSCANDataset:
         cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
         distances = np.zeros(len(X_scaled))  # 默认值设置为0
-        # 为每个样本初始化一个距离调整因子，基于其归属概率
-        distance_adjustment_factor = 1 - probabilities  # 归属概率越低，调整因子越大
 
         for label in unique_labels:
             if label != -1:
