@@ -55,6 +55,7 @@ class HDBSCANDataset:
                 # 计算曼哈顿距离，并应用距离调整因子
                 adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1) * (
                         1 + distance_adjustment_factor[labels == label])
+                # adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1)
                 distances[labels == label] = adjusted_distances
             else:
                 noise_indices = np.where(labels == -1)[0]
@@ -64,6 +65,7 @@ class HDBSCANDataset:
                     distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
                     # 对噪声点也应用距离调整因子
                     distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
+                    # distances[index] = np.min(distances_to_centers)
 
         return distances
 
