@@ -5,7 +5,7 @@ import pickle
 import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
-from sklearn.preprocessing import  MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 from evaluate.mia_evaluate import attack_mode0, attack_mode1
@@ -22,7 +22,7 @@ class HDBSCANDataset:
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
@@ -112,6 +112,10 @@ class HDBSCANDataset:
         high_distance_values = distances[high_distance_indices]
         random_shadow_values = distances[random_indices]
 
+        without_low_distance_indices = [index for index in range(len(self.dataset)) if
+                                        index not in low_distance_indices]
+        without_low_distance_dataset = Subset(self.dataset, without_low_distance_indices)
+
         print("簇内聚类距离小的样本分数:", low_distance_values)
         print("簇内聚类距离大的样本分数:", high_distance_values)
         print("噪音点距离最大的样本分数：", selected_noise_distances)
@@ -119,7 +123,7 @@ class HDBSCANDataset:
 
         return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset, distances
 
-def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
+def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
     # 加载攻击模型
     attack_model = ShadowAttackModel(num_classes)
     attack_model.load_state_dict(torch.load(model_path, map_location=attack_model.device))
@@ -145,33 +149,35 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
                     total += members.size(0)
                     correct += predicted.eq(members).sum().item()
                     probabilities = F.softmax(results, dim=1)
-
-                    if epoch:  # 如果有epoch参数，保存详细结果
-                        final_test_ground_truth.append(members)
-                        final_test_prediction.append(predicted)
-                        final_test_probability.append(probabilities[:, 1])
-
+                    final_test_ground_truth.append(members)
+                    final_test_prediction.append(predicted)
+                    final_test_probability.append(probabilities[:, 1])
                 except EOFError:
                     break
 
-    if epoch:  # 处理和保存测试结果
-        final_test_ground_truth = torch.cat(final_test_ground_truth, dim=0).cpu().numpy()
-        final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
-        final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
+    final_test_ground_truth = torch.cat(final_test_ground_truth, dim=0).cpu().numpy()
+    final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
+    final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
 
-        test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
-        test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
+    test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
+    test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
+    fpr, tpr, thresholds = roc_curve(final_test_ground_truth, final_test_probability)
 
-        with open(result_path, "wb") as f:
-            pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
+    # 选择一个FPR阈值，如0.05（5%），并找到对应的TPR
+    target_fpr = 0.05
+    closest_fpr_idx = (np.abs(fpr - target_fpr)).argmin()
+    tpr_at_low_fpr = tpr[closest_fpr_idx]
 
-        print("Saved Attack Test Ground Truth and Predict Sets")
-        print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
+    with open(result_path, "wb") as f:
+        pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
+
+    print("Saved Attack Test Ground Truth and Predict Sets")
+    print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
+    print("TPR at 5%% FPR: %.3f" % tpr_at_low_fpr)
 
     test_acc = 1.0 * correct / total
     print('Test Acc: %.3f%% (%d/%d)' % (100. * test_acc, correct, total))
 
-    final_result = [test_f1_score, test_roc_auc_score, test_acc] if epoch else [test_acc]
     return test_acc
 
 

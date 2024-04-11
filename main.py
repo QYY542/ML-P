@@ -182,13 +182,13 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
 
     result_path = './dataloader/trained_model/attack_results'
     print("========MIN_dataset========")
-    test_acc_min = evaluate_attack_model(attack_model_path, test_min_set_path, result_path + "_min.p", num_classes, 1)
+    test_acc_min = evaluate_attack_model(attack_model_path, test_min_set_path, result_path + "_min.p", num_classes)
     print("========MAX_dataset========")
-    test_acc_max = evaluate_attack_model(attack_model_path, test_max_set_path, result_path + "_max.p", num_classes, 1)
+    test_acc_max = evaluate_attack_model(attack_model_path, test_max_set_path, result_path + "_max.p", num_classes)
     print("========NOISE_dataset========")
-    test_acc_noise = evaluate_attack_model(attack_model_path, test_noise_set_path, result_path + "_noise.p", num_classes, 1)
+    test_acc_noise = evaluate_attack_model(attack_model_path, test_noise_set_path, result_path + "_noise.p", num_classes)
     print("========RANDOM_dataset========")
-    test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes, 1)
+    test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes)
 
     draw(result_path,dataset_name, model_name)
 
@@ -378,7 +378,6 @@ def main():
     # 进行HDBSCAN聚类研究
     elif args.evaluate_type == 1:
         test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
-
 
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
