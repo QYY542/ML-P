@@ -206,8 +206,8 @@ class attack_for_blackbox():
 
         final_result.append(1. * correct / total)
         print('Test Acc: %.3f%% (%d/%d)' % (100. * correct / (1.0 * total), correct, total))
-
-        return final_result
+        test_acc = 100. * correct / (1.0 * total)
+        return test_acc
 
     def delete_pickle(self):
         train_file = glob.glob(self.ATTACK_SETS + "train.p")
@@ -241,12 +241,12 @@ def attack_mode0(TARGET_PATH, SHADOW_PATH, ATTACK_PATH, device, attack_trainload
         flag = 1 if i == 49 else 0
         print("Epoch %d :" % (i + 1))
         res_train = attack.train(flag, RESULT_PATH)
-        res_test = attack.test(flag, RESULT_PATH)
+        test_acc = attack.test(flag, RESULT_PATH)
 
     attack.saveModel(MODELS_PATH)
     print("Saved Attack Model")
 
-    return res_train, res_test
+    return test_acc
 
 
 # black partial
@@ -267,9 +267,9 @@ def attack_mode1(TARGET_PATH, ATTACK_PATH, device, attack_trainloader, attack_te
         flag = 1 if i == 49 else 0
         print("Epoch %d :" % (i + 1))
         res_train = attack.train(flag, RESULT_PATH)
-        res_test = attack.test(flag, RESULT_PATH)
+        test_acc = attack.test(flag, RESULT_PATH)
 
     attack.saveModel(MODELS_PATH)
     print("Saved Attack Model")
 
-    return res_train, res_test
+    return test_acc

@@ -94,8 +94,10 @@ class HDBSCANDataset:
             noise_sorted_indices_tmp = np.argsort(-noise_distances)  # 对噪声点的距离进行降序排序
             noise_sorted_indices = noise_indices[noise_sorted_indices_tmp]
             # 选择距离最大的n个噪声点，如果噪声点不足n个，则选择所有噪声点
-            selected_noise_indices = noise_sorted_indices[:min(len(noise_sorted_indices), n)]
-            selected_noise_distances = noise_distances[noise_sorted_indices_tmp[:min(len(noise_sorted_indices), n)]]
+            # selected_noise_indices = noise_sorted_indices[:min(len(noise_sorted_indices), n)]
+            selected_noise_indices = noise_sorted_indices[-min(len(noise_sorted_indices), n):]
+            # selected_noise_distances = noise_distances[noise_sorted_indices_tmp[:min(len(noise_sorted_indices), n)]]
+            selected_noise_distances = noise_distances[noise_sorted_indices_tmp[-min(len(noise_sorted_indices), n):]]
         else:
             selected_noise_indices = []
             selected_noise_distances = []

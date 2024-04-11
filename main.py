@@ -60,6 +60,8 @@ def test_QID(dataset_name):
     for index, normalized_impact in zip(range(len(qid_indices)), normalized_impacts):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
+    return normalized_impacts
+
 
 def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 假设您已经正确加载了数据集
@@ -214,17 +216,19 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+        test_acc = attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
                      attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+        test_acc = attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
                      attack_testloader,
                      target_model,
                      attack_model, 1, model_name, num_features)
+
+    return test_acc
 
 
 def prepare_dataset(dataset_name, model_name):
@@ -320,6 +324,30 @@ def main():
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
+
+    # 综合分析
+    elif args.evaluate_type == 3:
+        # ====QID脆弱性分析==== #
+        print("开始QID脆弱性分析...")
+        normalized_impacts = test_QID(dataset_name)  # 假设这个函数返回每个QID的影响力评分列表
+
+        # 计算QID影响力评分的平均值和标准差
+        mean_impact = sum(normalized_impacts) / len(normalized_impacts)
+        std_impact = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
+
+        # 计算变异系数
+        print(f"QID总风险的标准差: {std_impact}")
+
+        # ====MIA分析==== #
+        print("开始MIA分析...")
+        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
+                 target_model, shadow_model, mode, model_name, num_features)
+
+        print(f"MIA攻击准确率为: {test_acc}")
+
+        comprehensive_privacy_risk_score = (1 - test_acc) * (1 + std_impact)
+        print(f"数据集的综合隐私评分为: {comprehensive_privacy_risk_score}")
+
 
 
 def fix_seed(num):
