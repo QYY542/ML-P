@@ -88,8 +88,6 @@ class HDBSCANDataset:
             selected_noise_indices = []
             selected_noise_distances = []
 
-        print("噪音点距离最大的样本分数：", selected_noise_distances)
-
         # 随机选择数据集和测试数据集
         random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
@@ -105,12 +103,11 @@ class HDBSCANDataset:
 
         low_distance_values = distances[low_distance_indices]
         high_distance_values = distances[high_distance_indices]
-        noise_distance_values = distances[selected_noise_indices]
         random_shadow_values = distances[random_indices]
 
         print("簇内聚类距离小的样本分数:", low_distance_values)
         print("簇内聚类距离大的样本分数:", high_distance_values)
-        print("噪音点距离最大的样本分数：", noise_distance_values)
+        print("噪音点距离最大的样本分数：", selected_noise_distances)
         print("聚类距离随机的样本分数:", random_shadow_values)
 
         return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset
