@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import f1_score, roc_auc_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 
@@ -38,7 +38,7 @@ class KmeansDataset:
         min_indices = np.argsort(min_distances)[:n]
         max_indices = np.argsort(min_distances)[-n:]
         random_indices = np.random.choice(len(self.dataset), n, replace=False)
-        random_shadow_indices = np.random.choice(len(self.dataset), n+n, replace=False)
+        random_shadow_indices = np.random.choice(len(self.dataset), n + n, replace=False)
 
         # 获取对应的聚类距离
         min_distances_values = min_distances[min_indices]
@@ -70,7 +70,7 @@ class KmeansDataset:
         for X, _ in loader:
             X = X.numpy()  # 假设X是numpy数组
         # 数据标准化
-        scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
@@ -106,7 +106,6 @@ class KmeansDataset:
         # 找到距离最大的点作为肘部点
         elbow_index = np.argmax(distances)
         return elbow_index + 1  # 由于聚类数不能为0，所以加1
-
 
 
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, epoch):
@@ -164,9 +163,9 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
     final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
     return final_result
 
-def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
-             shadow_model, mode, model_name, num_features, kmeans_mode=""):
 
+def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
+                    shadow_model, mode, model_name, num_features, kmeans_mode=""):
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
@@ -182,9 +181,14 @@ def test_kmeans_mia(PATH, device, num_classes, attack_trainloader, attack_testlo
                      target_model,
                      attack_model, 1, model_name, num_features)
 
-def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max, target_train_random, target_test_random, shadow_train, shadow_test, batch_size = 64):
-    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max, mem_test_random, nonmem_test_random = list(shadow_train), list(shadow_test), list(target_train_min), list(
-        target_test_min), list(target_train_max), list(target_test_max), list(target_train_random), list(target_test_random)
+
+def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, target_train_max, target_test_max,
+                                          target_train_noise, target_test_noise, target_train_random,
+                                          target_test_random, shadow_train, shadow_test, batch_size=64):
+    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max,mem_test_noise, nonmem_test_noise, mem_test_random, nonmem_test_random = list(
+        shadow_train), list(shadow_test), list(target_train_min), list(
+        target_test_min), list(target_train_max), list(target_test_max),list(target_train_noise), list(target_test_noise), list(target_train_random), list(
+        target_test_random)
 
     for i in range(len(mem_train)):
         mem_train[i] = mem_train[i] + (1,)
@@ -201,6 +205,11 @@ def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, tar
     for i in range(len(mem_test_max)):
         mem_test_max[i] = mem_test_max[i] + (1,)
 
+    for i in range(len(nonmem_test_noise)):
+        nonmem_test_noise[i] = nonmem_test_noise[i] + (0,)
+    for i in range(len(mem_test_noise)):
+        mem_test_noise[i] = mem_test_noise[i] + (1,)
+
     for i in range(len(nonmem_test_random)):
         nonmem_test_random[i] = nonmem_test_random[i] + (0,)
     for i in range(len(mem_test_random)):
@@ -213,17 +222,26 @@ def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, tar
     non_mem_train, _ = torch.utils.data.random_split(nonmem_train, [train_length, len(nonmem_train) - train_length])
 
     mem_test_min, _ = torch.utils.data.random_split(mem_test_min, [test_length, len(mem_test_min) - test_length])
-    non_mem_test_min, _ = torch.utils.data.random_split(nonmem_test_min, [test_length, len(nonmem_test_min) - test_length])
+    non_mem_test_min, _ = torch.utils.data.random_split(nonmem_test_min,
+                                                        [test_length, len(nonmem_test_min) - test_length])
 
     mem_test_max, _ = torch.utils.data.random_split(mem_test_max, [test_length, len(mem_test_max) - test_length])
-    non_mem_test_max, _ = torch.utils.data.random_split(nonmem_test_max, [test_length, len(nonmem_test_max) - test_length])
+    non_mem_test_max, _ = torch.utils.data.random_split(nonmem_test_max,
+                                                        [test_length, len(nonmem_test_max) - test_length])
 
-    mem_test_random, _ = torch.utils.data.random_split(mem_test_random, [test_length, len(mem_test_random) - test_length])
-    non_mem_test_random, _ = torch.utils.data.random_split(nonmem_test_random, [test_length, len(nonmem_test_random) - test_length])
+    mem_test_noise, _ = torch.utils.data.random_split(mem_test_noise, [test_length, len(mem_test_noise) - test_length])
+    non_mem_test_noise, _ = torch.utils.data.random_split(nonmem_test_noise,
+                                                        [test_length, len(nonmem_test_noise) - test_length])
+
+    mem_test_random, _ = torch.utils.data.random_split(mem_test_random,
+                                                       [test_length, len(mem_test_random) - test_length])
+    non_mem_test_random, _ = torch.utils.data.random_split(nonmem_test_random,
+                                                           [test_length, len(nonmem_test_random) - test_length])
 
     attack_train = mem_train + non_mem_train
     attack_test_min = mem_test_min + non_mem_test_min
     attack_test_max = mem_test_max + non_mem_test_max
+    attack_test_noise = mem_test_noise + non_mem_test_noise
     attack_test_random = mem_test_random + non_mem_test_random
 
     attack_trainloader = torch.utils.data.DataLoader(
@@ -232,7 +250,9 @@ def get_attack_dataset_with_shadow_kmeans(target_train_min, target_test_min, tar
         attack_test_min, batch_size=batch_size, shuffle=True, num_workers=2)
     attack_max_testloader = torch.utils.data.DataLoader(
         attack_test_max, batch_size=batch_size, shuffle=True, num_workers=2)
+    attack_noise_testloader = torch.utils.data.DataLoader(
+        attack_test_noise, batch_size=batch_size, shuffle=True, num_workers=2)
     attack_random_testloader = torch.utils.data.DataLoader(
         attack_test_random, batch_size=batch_size, shuffle=True, num_workers=2)
 
-    return attack_trainloader, attack_min_testloader, attack_max_testloader, attack_random_testloader
+    return attack_trainloader, attack_min_testloader, attack_max_testloader, attack_noise_testloader, attack_random_testloader

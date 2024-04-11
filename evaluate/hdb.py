@@ -1,127 +1,120 @@
-import numpy as np
-from sklearn.metrics import silhouette_score
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_distances
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import DataLoader, Subset
+import numpy as np
 import hdbscan
 
+
+# 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset_save:
     def __init__(self, dataset):
         self.dataset = dataset
-        self.min_cluster_size = self.calculate_min_cluster_size()
-
-    def compute_hdbscan_clusters(self):
-        X_scaled = self.load_and_scale_data()
-        print("min_cluster_size = ", self.min_cluster_size)
-
-        # 使用HDBSCAN进行聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
-        clusterer.fit(X_scaled)
-        labels = clusterer.labels_
-
-        # 找到每个聚类的样本索引
-        # unique_labels = np.unique(labels[labels >= 0])  # 忽略噪声点
-        unique_labels = np.unique(labels)  # 包含噪声点
-        cluster_indices = {label: np.where(labels == label)[0] for label in unique_labels}
-
-        return cluster_indices, X_scaled
-
-    def apply_kmeans_to_clusters(self, cluster_indices, X_scaled):
-        distances = np.zeros(len(X_scaled))
-
-        for label, indices in cluster_indices.items():
-            if label == -1:
-                # 将噪声点的距离设置为0
-                distances[indices] = 0
-            else:
-                # 对于非噪声点聚类，正常计算到聚类中心的距离
-                cluster_points = X_scaled[indices]
-                kmeans = KMeans(n_clusters=1, random_state=42).fit(cluster_points)
-                distances[indices] = np.linalg.norm(cluster_points - kmeans.cluster_centers_, axis=1)
-
-        return distances
-
-    def get_specific_datasets_and_distances(self, n):
-        cluster_indices, X_scaled = self.compute_hdbscan_clusters()
-        distances = self.apply_kmeans_to_clusters(cluster_indices, X_scaled)
-
-        # 去掉0值样本
-        distances_indices = np.where(distances > 0)[0]
-        distances = distances[distances_indices]
-
-        # 选择距离最远和最近的样本
-        low_distance_indices = np.argsort(distances)[:n]
-        high_distance_indices = np.argsort(distances)[-n:]
-        random_indices = np.random.choice(len(self.dataset), n, replace=False)
-        random_shadow_indices = np.random.choice(len(self.dataset), n + n, replace=False)
-
-        excluded_indices = set(high_distance_indices).union(low_distance_indices, random_indices)
-        remaining_indices = list(set(range(len(self.dataset))) - excluded_indices)
-
-        test_indices = np.random.choice(remaining_indices, n, replace=False)
-
-        # 获取对应的distance
-        low_distance_values = distances[low_distance_indices]
-        high_distance_values = distances[high_distance_indices]
-
-        print("聚类距离小的样本分数:", low_distance_values)
-        print("聚类距离大的样本分数:", high_distance_values)
-
-        # 创建数据子集
-        high_distance_dataset = Subset(self.dataset, high_distance_indices)
-        low_distance_dataset = Subset(self.dataset, low_distance_indices)
-        random_dataset = Subset(self.dataset, random_indices)
-        test_dataset = Subset(self.dataset, test_indices)
-        random_dataset_shadow = Subset(self.dataset, random_shadow_indices)
-
-        return low_distance_dataset, high_distance_dataset, random_dataset, test_dataset, random_dataset_shadow
+        # self.min_cluster_size = self.calculate_min_cluster_size()
+        self.min_cluster_size = 5
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
+    def compute_hdbscan_clusters(self):
+        X_scaled = self.load_and_scale_data()
+        X_scaled = X_scaled.astype(np.float64)
+        print("min_cluster_size = ", self.min_cluster_size)
+
+        # 使用HDBSCAN计算曼哈顿距离聚类
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='manhattan')
+        clusterer.fit(X_scaled)
+        return clusterer.labels_, X_scaled, clusterer.probabilities_
+
+    def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
+        unique_labels = np.unique(labels)
+        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
+
+        distances = np.zeros(len(X_scaled))  # 默认值设置为0
+        # 为每个样本初始化一个距离调整因子，基于其归属概率
+        distance_adjustment_factor = 1 - probabilities  # 归属概率越低，调整因子越大
+
+        for label in unique_labels:
+            if label != -1:
+                cluster_points = X_scaled[labels == label]
+                center = cluster_centers[label]
+                # 计算曼哈顿距离，并应用距离调整因子
+                adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1) * (
+                        1 + distance_adjustment_factor[labels == label])
+                distances[labels == label] = adjusted_distances
+            else:
+                noise_indices = np.where(labels == -1)[0]
+                print(len(noise_indices))
+                for index in noise_indices:
+                    noise_point = X_scaled[index]
+                    distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
+                    # 对噪声点也应用距离调整因子
+                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
+
+        return distances
+
+    def get_specific_datasets_and_distances(self, n):
+        labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
+        distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
+
+        flag = 0
+
+        if flag == 0:
+            # 找出非噪声点的索引
+            non_noise_indices = np.where(labels != -1)[0]
+            # 只保留非噪声点的距离
+            non_noise_distances = distances[non_noise_indices]
+            # 对非噪声点的距离进行排序
+            sorted_indices_tmp = np.argsort(non_noise_distances)
+            # 根据排序后的索引获取实际的数据索引
+            sorted_indices = non_noise_indices[sorted_indices_tmp]
+        else:
+            # 排序并选择距离最小和最大的n个样本
+            sorted_indices = np.argsort(distances)
+
+        low_distance_indices = sorted_indices[:n]
+        high_distance_indices = sorted_indices[-n:]
+
+        # 随机选择数据集和测试数据集
+        random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
+        test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
+        random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
+
+        # 创建对应的Subset
+        low_distance_dataset = Subset(self.dataset, low_distance_indices)
+        high_distance_dataset = Subset(self.dataset, high_distance_indices)
+        random_dataset = Subset(self.dataset, random_indices)
+        test_dataset = Subset(self.dataset, test_indices)
+        random_shadow_dataset = Subset(self.dataset, random_shadow_indices)
+
+        low_distance_values = distances[low_distance_indices]
+        high_distance_values = distances[high_distance_indices]
+        random_shadow_values = distances[random_indices]
+
+        print("簇内聚类距离小的样本分数:", low_distance_values)
+        print("簇内聚类距离大的样本分数:", high_distance_values)
+        print("噪音点距离最大的样本分数：")
+        print("聚类距离随机的样本分数:", random_shadow_values)
+
+        return low_distance_dataset, high_distance_dataset, random_dataset, test_dataset, random_shadow_dataset
+
     def calculate_min_cluster_size(self):
-        standard_size = 10000  # 标准大小
-        base_min_cluster_size = 10  # 基础的min_cluster_size值
+        standard_size = 10000  # 标准参考大小
+        base_min_cluster_size = 5  # 调低基础的min_cluster_size值以提高灵活性
+        data_size = len(self.dataset)  # 数据集的大小
+        num_features = next(iter(self.dataset))[0].shape[0]  # 特征数量
 
-        # 获取数据集的大小和特征数
-        data_size = len(self.dataset)
-        # 假设dataset是二维的，例如：[样本数, 特征数]
-        # 如果不是这样，需要根据实际情况调整
-        num_features = next(iter(self.dataset))[0].shape[0]
+        # 调整大小因子，确保对于较小的数据集，min_cluster_size不会过高
+        size_factor = max(data_size / standard_size, 0.1)  # 确保即使是小数据集，size_factor也有一个最小值
 
-        # 根据数据大小调整min_cluster_size
-        size_factor = data_size / standard_size
-        # 根据特征数量调整基础值
-        feature_factor = 1 + (num_features - 1) / 50  # 假设每增加10个特征，min_cluster_size增加5%
+        # 特征因子调整，对于每增加10个特征，min_cluster_size增加的比例稍微降低
+        feature_factor = 1 + (num_features - 1) / 100  # 每增加100个特征，min_cluster_size仅增加1倍
 
-        adjusted_min_cluster_size = base_min_cluster_size * max(size_factor, 1) * feature_factor
-        return int(max(adjusted_min_cluster_size, 5))  # 确保min_cluster_size至少为5
-    # def calculate_min_cluster_size(self, sample_size=0.1, min_size=5, max_size=50, step=5):
-    #     X_scaled = self.load_and_scale_data()  # 加载并缩放数据
-    #
-    #     # 对数据进行随机采样
-    #     X_sample, _ = train_test_split(X_scaled, test_size=sample_size, random_state=42)
-    #
-    #     max_silhouette = -1
-    #     best_min_cluster_size = None
-    #
-    #     # 在采样数据上遍历不同的min_cluster_size值
-    #     for min_cluster_size in range(min_size, max_size + 1, step):
-    #         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
-    #         clusterer.fit(X_sample)
-    #         labels = clusterer.labels_
-    #
-    #         # 如果有超过一个聚类且不全是噪声
-    #         if len(set(labels)) > 1 and np.sum(labels != -1) > 1:
-    #             silhouette = silhouette_score(X_sample, labels)
-    #             if silhouette > max_silhouette:
-    #                 max_silhouette = silhouette
-    #                 best_min_cluster_size = min_cluster_size
-    #
-    #     return best_min_cluster_size if best_min_cluster_size else min_size
+        # 计算调整后的min_cluster_size
+        adjusted_min_cluster_size = base_min_cluster_size * size_factor * feature_factor
+        # 确保最终的min_cluster_size至少为5，同时也反映了基于数据大小和特征数量的动态调整
+        return int(max(adjusted_min_cluster_size, 5))
