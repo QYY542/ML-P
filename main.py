@@ -335,6 +335,13 @@ def main():
 
         # ====MIA分析==== #
         print("开始MIA分析...")
+        if args.train_target:
+            train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
+
+        # 训练影子模型
+        if args.train_shadow:
+            train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
+
         test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                  target_model, shadow_model, mode, model_name, num_features)
 
