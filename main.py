@@ -92,9 +92,10 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     dataset_len = len(dataset)
     # 取前三分之一样本的数据
     # 这个数据和train_target_model中的batch_size有关
-    n = dataset_len // 7
-    if n >= 2000:
-        n = 2000
+    # n = dataset_len // 7
+    # if n >= 2000:
+    #     n = 2000
+    n = 400
 
     # 获取三类数据集 min max random
     evaluator = HDBSCANDataset(dataset)
@@ -329,23 +330,23 @@ def main():
     elif args.evaluate_type == 3:
         # ====QID脆弱性分析==== #
         print("开始QID脆弱性分析...")
-        normalized_impacts = test_QID(dataset_name)  # 假设这个函数返回每个QID的影响力评分列表
+        normalized_impacts = test_QID(dataset_name)
 
-        # 计算QID影响力评分的平均值和标准差
         mean_impact = sum(normalized_impacts) / len(normalized_impacts)
         std_impact = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
 
-        # 计算变异系数
-        print(f"QID总风险的标准差: {std_impact}")
+        # ====HDBSCAN聚类分析==== #
+
 
         # ====MIA分析==== #
         print("开始MIA分析...")
         test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                  target_model, shadow_model, mode, model_name, num_features)
 
+        print(f"QID总风险的标准差: {std_impact}")
         print(f"MIA攻击准确率为: {test_acc}")
 
-        comprehensive_privacy_risk_score = (1 - test_acc) * (1 + std_impact)
+        comprehensive_privacy_risk_score = test_acc * (1 + std_impact)
         print(f"数据集的综合隐私评分为: {comprehensive_privacy_risk_score}")
 
 
