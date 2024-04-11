@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Subset
 from evaluate.mia_evaluate import attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
 from sklearn.cluster import HDBSCAN
-from scipy.spatial.distance import cosine
+from scipy.spatial import distance
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
     def __init__(self, dataset):
@@ -30,7 +30,7 @@ class HDBSCANDataset:
         print("min_cluster_size = ", self.min_cluster_size)
 
         # 使用HDBSCAN计算余弦距离聚类
-        clusterer = HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='cosine')
+        clusterer = HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
@@ -46,16 +46,17 @@ class HDBSCANDataset:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
                 center = cluster_centers[label]
-                # 使用余弦距离计算
-                adjusted_distances = np.array([cosine(point, center) for point in cluster_points]) * (
-                            1 + distance_adjustment_factor[labels == label])
+                # 计算余弦距离，并应用距离调整因子
+                adjusted_distances = [distance.cosine(cp, center) * (1 + distance_adjustment_factor[idx]) for idx, cp in enumerate(cluster_points)]
                 distances[labels == label] = adjusted_distances
             else:
                 noise_indices = np.where(labels == -1)[0]
+                print(len(noise_indices))
                 for index in noise_indices:
                     noise_point = X_scaled[index]
-                    distances_to_centers = [cosine(noise_point, center) for center in cluster_centers.values()]
-                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
+                    distances_to_centers = [distance.cosine(noise_point, center) for center in cluster_centers.values()]
+                    # 对噪声点也应用距离调整因子
+                    distances[index] = min(distances_to_centers) * (1 + distance_adjustment_factor[index])
 
         return distances
 
