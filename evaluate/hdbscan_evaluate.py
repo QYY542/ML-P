@@ -1,3 +1,4 @@
+from sklearn.metrics.pairwise import cosine_distances
 from torch.utils.data import DataLoader
 # import hdbscan
 import pickle
@@ -27,34 +28,37 @@ class HDBSCANDataset:
 
     def compute_hdbscan_clusters(self):
         X_scaled = self.load_and_scale_data()
-        print("min_cluster_size = ", self.min_cluster_size)
+        # 计算余弦距离矩阵
+        distance_matrix = cosine_distances(X_scaled)
 
-        # 使用HDBSCAN计算余弦距离聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
-        clusterer.fit(X_scaled)
+        # 使用预计算的余弦距离矩阵进行聚类
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size,
+                                    metric='precomputed',  # 使用预计算的距离矩阵
+                                    gen_min_span_tree=True)
+        clusterer.fit(distance_matrix)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
+        distances = np.zeros(len(X_scaled))  # 初始化距离数组
 
-        distances = np.zeros(len(X_scaled))  # 默认值设置为0
-
+        # 首先找出每个聚类的中心点
+        cluster_centers = {}
         for label in unique_labels:
+            if label != -1:  # 排除噪声点
+                # 计算每个聚类的均值作为中心
+                cluster_centers[label] = X_scaled[labels == label].mean(axis=0)
+
+        # 计算每个点到其聚类中心的余弦距离
+        for idx, point in enumerate(X_scaled):
+            label = labels[idx]
             if label != -1:
-                cluster_points = X_scaled[labels == label]
+                # 计算到中心的余弦距离
                 center = cluster_centers[label]
-                # 计算余弦距离，并应用距离调整因子
-                adjusted_distances = [distance.cosine(cp, center) for idx, cp in enumerate(cluster_points)]
-                distances[labels == label] = adjusted_distances
+                distances[idx] = pairwise_distances([point], [center], metric='cosine')[0][0]
             else:
-                noise_indices = np.where(labels == -1)[0]
-                print(len(noise_indices))
-                for index in noise_indices:
-                    noise_point = X_scaled[index]
-                    distances_to_centers = [distance.cosine(noise_point, center) for center in cluster_centers.values()]
-                    # 对噪声点也应用距离调整因子
-                    distances[index] = min(distances_to_centers)
+                # 对噪声点，找到所有中心的最小余弦距离
+                distances[idx] = np.min(pairwise_distances([point], list(cluster_centers.values()), metric='cosine'))
 
         return distances
 
