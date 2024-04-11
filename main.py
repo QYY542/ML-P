@@ -256,7 +256,7 @@ def draw(result_path,dataset_name, model_name):
     ax.set_xticks(np.arange(1, len(datasets) * 2, 2))
     ax.set_xticklabels(datasets)
     ax.legend()
-    plt.savefig("./dataloader/img/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
+    plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
