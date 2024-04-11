@@ -30,7 +30,7 @@ class HDBSCANDataset:
         print("min_cluster_size = ", self.min_cluster_size)
 
         # 使用HDBSCAN计算余弦距离聚类
-        clusterer = HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True)
+        clusterer = HDBSCAN(min_cluster_size=self.min_cluster_size)
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
