@@ -175,11 +175,11 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes, e
         print("Saved Attack Test Ground Truth and Predict Sets")
         print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
 
-    test_accuracy = 1.0 * correct / total
-    print('Test Acc: %.3f%% (%d/%d)' % (100. * test_accuracy, correct, total))
+    test_acc = 1.0 * correct / total
+    print('Test Acc: %.3f%% (%d/%d)' % (100. * test_acc, correct, total))
 
-    final_result = [test_f1_score, test_roc_auc_score, test_accuracy] if epoch else [test_accuracy]
-    return final_result
+    final_result = [test_f1_score, test_roc_auc_score, test_acc] if epoch else [test_acc]
+    return test_acc
 
 
 def test_hdbscan_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,

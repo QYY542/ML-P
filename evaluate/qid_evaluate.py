@@ -66,28 +66,6 @@ class QID_VE:
             impact = score_original - score_shuffled
             impacts.append(impact)
 
-        return np.mean(impacts)  # 返回多次试验的平均impact值
+        # 返回多次试验的平均impact值
+        return np.mean(impacts)
 
-# if __name__ == '__main__':
-#     # dataset = Student("../dataloader/datasets/student/")
-#     dataset = Obesity("../dataloader/datasets/obesity/")
-#
-#     evaluator = QID_VE(dataset)
-#     evaluator.train_test_split()
-#
-#     # 指定QID列的索引，假设性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）的索引分别是
-#     qid_indices = [0, 1, 2, 3]  # 这里的索引需要根据实际情况进行调整
-#
-#     impacts = []
-#     for i in qid_indices:
-#         impact = evaluator.compute_qid_impacts(i)
-#         print(f"Impact for QID at index {i}: {impact}")
-#         impacts.append(impact)
-#
-#     # 将impact结果处理为和为一
-#     total_impact = sum(impacts)
-#     normalized_impacts = [impact / total_impact for impact in impacts]
-#
-#     # 输出标准化后的impact值
-#     for index, normalized_impact in zip(qid_indices, normalized_impacts):
-#         print(f"Normalized Impact for QID at index {index}: {normalized_impact}")

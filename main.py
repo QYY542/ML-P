@@ -66,19 +66,19 @@ def test_QID(dataset_name):
 def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 假设您已经正确加载了数据集
     if dataset_name == 'Obesity':
-        print('Obesity_kmeans')
+        print('Obesity_hdbscan')
         dataset = Obesity()
         num_classes = 7
     elif dataset_name == 'Student':
-        print('Student_kmeans')
+        print('Student_hdbscan')
         dataset = Student()
         num_classes = 3
     elif dataset_name == 'Hospital':
-        print('Hospital_kmeans')
+        print('Hospital_hdbscan')
         dataset = Hospital()
         num_classes = 3
     elif dataset_name == 'Adult':
-        print('Adult_kmeans')
+        print('Adult_hdbscan')
         dataset = Adult()
         num_classes = 2
 
@@ -89,30 +89,15 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
 
+    # 取400份样本的数据
     dataset_len = len(dataset)
-    # 取前三分之一样本的数据
-    # 这个数据和train_target_model中的batch_size有关
-    # n = dataset_len // 7
-    # if n >= 2000:
-    #     n = 2000
     n = 400
 
     # 获取三类数据集 min max random
     evaluator = HDBSCANDataset(dataset)
-    min_dataset, max_dataset, noise_dataset, random_dataset, test_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(
-        n)
+    min_dataset, max_dataset, noise_dataset, random_dataset, test_dataset, random_dataset_shadow = evaluator.get_specific_datasets_and_distances(n)
     num_features = next(iter(dataset))[0].shape[0]
     each_length = n
-
-    # target_train_min, target_test_min = torch.utils.data.random_split(
-    #     min_dataset, [each_length, each_length]
-    # )
-    # target_train_max, target_test_max = torch.utils.data.random_split(
-    #     max_dataset, [each_length, each_length]
-    # )
-    # target_train_random, target_test_random = torch.utils.data.random_split(
-    #     random_dataset, [each_length, each_length]
-    # )
 
     target_train_min, target_test_min = min_dataset, test_dataset
     target_train_max, target_test_max = max_dataset, test_dataset
@@ -122,6 +107,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     shadow_train, shadow_test = torch.utils.data.random_split(
         random_dataset_shadow, [each_length, each_length]
     )
+
     # 获取模型并且评估
     if model_name == "MLP":
         print("MLP")
@@ -192,15 +178,17 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
         test_noise_set_path = TARGET_PATH + '_noise' + '_meminf_attack_mode1_test.p'
         test_random_set_path = TARGET_PATH + '_random' + '_meminf_attack_mode1_test.p'
 
-    result_path = './dataloader/trained_model/attack_results.p'
+    result_path = './dataloader/trained_model/attack_results'
     print("========MIN_dataset========")
-    evaluate_attack_model(attack_model_path, test_min_set_path, result_path, num_classes, 1)
+    test_acc_min = evaluate_attack_model(attack_model_path, test_min_set_path, result_path + "_min.p", num_classes, 1)
     print("========MAX_dataset========")
-    evaluate_attack_model(attack_model_path, test_max_set_path, result_path, num_classes, 1)
+    test_acc_max = evaluate_attack_model(attack_model_path, test_max_set_path, result_path + "_max.p", num_classes, 1)
     print("========NOISE_dataset========")
-    evaluate_attack_model(attack_model_path, test_noise_set_path, result_path, num_classes, 1)
+    test_acc_noise = evaluate_attack_model(attack_model_path, test_noise_set_path, result_path + "_noise.p", num_classes, 1)
     print("========RANDOM_dataset========")
-    evaluate_attack_model(attack_model_path, test_random_set_path, result_path, num_classes, 1)
+    test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes, 1)
+
+    return test_acc_min, test_acc_max, test_acc_noise, test_acc_random
 
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
@@ -306,22 +294,24 @@ def main():
     num_classes, num_features, target_train, target_test, shadow_train, shadow_test, target_model, shadow_model = prepare_dataset(
         dataset_name, model_name)
 
-    # 训练目标模型
-    if args.train_target and not args.kmeans:
-        train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
-
-    # 训练影子模型
-    if args.train_shadow and not args.kmeans:
-        train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
-
     # ----- 进行隐私风险评估 ----- #
     # 进行MIA评估
     if args.evaluate_type == 0:
+        # 训练目标模型
+        if args.train_target:
+            train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
+
+        # 训练影子模型
+        if args.train_shadow:
+            train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
+
         test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                  target_model, shadow_model, mode, model_name, num_features)
+
     # 进行HDBSCAN聚类研究
     elif args.evaluate_type == 1:
         test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
+
     # 进行QID脆弱性研究
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
@@ -331,12 +321,12 @@ def main():
         # ====QID脆弱性分析==== #
         print("开始QID脆弱性分析...")
         normalized_impacts = test_QID(dataset_name)
-
         mean_impact = sum(normalized_impacts) / len(normalized_impacts)
         std_impact = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
 
         # ====HDBSCAN聚类分析==== #
-
+        print("开始HDBSCAN聚类分析...")
+        test_acc_min, test_acc_max, test_acc_noise, test_acc_random = test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
 
         # ====MIA分析==== #
         print("开始MIA分析...")
