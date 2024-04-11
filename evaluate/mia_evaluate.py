@@ -206,7 +206,7 @@ class attack_for_blackbox():
 
         final_result.append(1. * correct / total)
         print('Test Acc: %.3f%% (%d/%d)' % (100. * correct / (1.0 * total), correct, total))
-        test_acc = 100. * correct / (1.0 * total)
+        test_acc = correct / (1.0 * total)
         return test_acc
 
     def delete_pickle(self):
