@@ -32,11 +32,10 @@ class HDBSCANDataset:
 
     def compute_hdbscan_clusters(self):
         X_scaled = self.load_and_scale_data()
-        X_scaled = X_scaled.astype(np.float64)
         print("min_cluster_size = ", self.min_cluster_size)
 
-        # 使用HDBSCAN计算曼哈顿距离聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='manhattan')
+        # 使用HDBSCAN计算余弦距离聚类
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='cosine')
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
@@ -64,7 +63,7 @@ class HDBSCANDataset:
                     noise_point = X_scaled[index]
                     distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
                     # 对噪声点也应用距离调整因子
-                    distances[index] = np.min(distances_to_centers) * (2 + distance_adjustment_factor[index])
+                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
                     # distances[index] = np.min(distances_to_centers)
 
         return distances
