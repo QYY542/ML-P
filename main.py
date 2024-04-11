@@ -1,5 +1,7 @@
 import argparse
 
+import matplotlib.pyplot as plt
+
 from evaluate.hdbscan_evaluate import HDBSCANDataset, evaluate_attack_model, test_hdbscan_mia, get_attack_dataset_with_shadow_hdbscan
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
@@ -188,8 +190,52 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     print("========RANDOM_dataset========")
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes, 1)
 
+    darw(result_path)
+
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
+
+def darw(result_path):
+    result_paths = [
+        result_path + "_min.p",
+        result_path + "_max.p",
+        result_path + "_noise.p",
+        result_path + "_random.p"
+    ]
+    datasets = ["MIN", "MAX", "NOISE", "RANDOM"]
+    probabilities = []
+    means = []
+    for path in result_paths:
+        with open(path, "rb") as f:
+            final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
+        # 筛选出预测正确的样本的预测概率
+        correct_probs = [prob for prob, predict, real in
+                         zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict == real]
+        probabilities.append(correct_probs)
+        # 计算平均值
+        means.append(np.mean(correct_probs))
+
+    # 绘制预测概率的分布图
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # 为每个数据集绘制预测概率分布
+    parts = ax.violinplot(probabilities, showmeans=False, showmedians=False, showextrema=False)
+    for pc in parts['bodies']:
+        pc.set_facecolor('#DDA0DD')
+        pc.set_edgecolor('black')
+        pc.set_alpha(1)
+
+    # 标出平均值
+    ax.scatter(range(1, len(datasets) + 1), means, marker='o', color='red', s=30, zorder=3, label='Mean Probability')
+
+    # 添加一些图形属性来增加可读性
+    ax.set_title('Predicted Probability Distribution for Correct Predictions Across Datasets')
+    ax.set_xlabel('Dataset')
+    ax.set_ylabel('Predicted Probability')
+    ax.set_xticks(np.arange(1, len(datasets) + 1))
+    ax.set_xticklabels(datasets)
+    ax.legend()
+    plt.savefig('/mnt/data/predicted_probability_distribution.png')
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
