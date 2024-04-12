@@ -1,17 +1,21 @@
-from sklearn.metrics.pairwise import cosine_distances, pairwise_distances
-from torch.utils.data import DataLoader
-# import hdbscan
+from sklearn.metrics.pairwise import cosine_distances
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from torch.utils.data import DataLoader, Subset
+import numpy as np
+import hdbscan
 import pickle
 import torch.nn.functional as F
 import numpy as np
-from sklearn.metrics import f1_score, roc_auc_score, roc_curve
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch.utils.data import DataLoader, Subset
-from evaluate.mia_evaluate import attack_mode0, attack_mode1
+
+from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
+from evaluate.mia_evaluate import attack_for_blackbox, attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
-import hdbscan
-from scipy.spatial import distance
+
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
     def __init__(self, dataset):
@@ -22,43 +26,47 @@ class HDBSCANDataset:
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
     def compute_hdbscan_clusters(self):
         X_scaled = self.load_and_scale_data()
-        # 计算余弦距离矩阵
-        distance_matrix = cosine_distances(X_scaled)
+        X_scaled = X_scaled.astype(np.float64)
+        print("min_cluster_size = ", self.min_cluster_size)
 
-        # 使用预计算的余弦距离矩阵进行聚类
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size,
-                                    metric='precomputed',  # 使用预计算的距离矩阵
-                                    gen_min_span_tree=True)
-        clusterer.fit(distance_matrix.astype('float64'))
+        # 使用HDBSCAN计算曼哈顿距离聚类
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='manhattan')
+        clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        distances = np.zeros(len(X_scaled))  # 初始化距离数组
+        distances = np.zeros(len(X_scaled))  # 默认值设置为0
+        # 为每个样本初始化一个距离调整因子，基于其归属概率
+        distance_adjustment_factor = 1 - probabilities  # 归属概率越低，调整因子越大
 
-        # 首先找出每个聚类的中心点
-        cluster_centers = {}
         for label in unique_labels:
-            if label != -1:  # 排除噪声点
-                # 计算每个聚类的均值作为中心
-                cluster_centers[label] = X_scaled[labels == label].mean(axis=0)
-
-        # 计算每个点到其聚类中心的余弦距离
-        for idx, point in enumerate(X_scaled):
-            label = labels[idx]
             if label != -1:
-                # 计算到中心的余弦距离
-                center = cluster_centers[label]
-                distances[idx] = pairwise_distances([point], [center], metric='cosine')[0][0]
+                cluster_points = X_scaled[labels == label]
+                # 计算聚类内所有点之间的曼哈顿距离
+                for i in range(len(cluster_points)):
+                    # 计算当前点到聚类中其他所有点的距离
+                    distances_to_other_points = np.sum(np.abs(cluster_points - cluster_points[i]), axis=1)
+                    # 找到除自身外的最小距离
+                    nearest_distance = np.min(distances_to_other_points[distances_to_other_points > 0])
+                    # 应用距离调整因子
+                    adjusted_distance = nearest_distance * (1 + distance_adjustment_factor[labels == label][i])
+                    distances[labels == label][i] = adjusted_distance
             else:
-                # 对噪声点，找到所有中心的最小余弦距离
-                distances[idx] = np.min(pairwise_distances([point], list(cluster_centers.values()), metric='cosine'))
+                noise_indices = np.where(labels == -1)[0]
+                for index in noise_indices:
+                    noise_point = X_scaled[index]
+                    # 计算噪声点到所有聚类点的距离
+                    distances_to_cluster_points = [np.sum(np.abs(noise_point - point)) for point in
+                                                   X_scaled[labels != -1]]
+                    # 应用距离调整因子
+                    distances[index] = np.min(distances_to_cluster_points) * (1 + distance_adjustment_factor[index])
 
         return distances
 
