@@ -42,31 +42,32 @@ class HDBSCANDataset:
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        distances = np.zeros(len(X_scaled))  # 默认值设置为0
-        # 为每个样本初始化一个距离调整因子，基于其归属概率
-        distance_adjustment_factor = 1 - probabilities  # 归属概率越低，调整因子越大
+        distances = np.zeros(len(X_scaled))  # 初始化距离数组为0
+        distance_adjustment_factor = 1 - probabilities  # 距离调整因子
+
+        # 计算聚类中心
+        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
         for label in unique_labels:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
-                # 计算聚类内所有点之间的曼哈顿距离
+                # 计算每个点到其它点的距离
                 for i in range(len(cluster_points)):
-                    # 计算当前点到聚类中其他所有点的距离
                     distances_to_other_points = np.sum(np.abs(cluster_points - cluster_points[i]), axis=1)
-                    # 找到除自身外的最小距离
+                    # 选择除自己外的最小距离
                     nearest_distance = np.min(distances_to_other_points[distances_to_other_points > 0])
                     # 应用距离调整因子
                     adjusted_distance = nearest_distance * (1 + distance_adjustment_factor[labels == label][i])
                     distances[labels == label][i] = adjusted_distance
             else:
+                # 处理噪声点
                 noise_indices = np.where(labels == -1)[0]
                 for index in noise_indices:
                     noise_point = X_scaled[index]
-                    # 计算噪声点到所有聚类点的距离
-                    distances_to_cluster_points = [np.sum(np.abs(noise_point - point)) for point in
-                                                   X_scaled[labels != -1]]
-                    # 应用距离调整因子
-                    distances[index] = np.min(distances_to_cluster_points) * (1 + distance_adjustment_factor[index])
+                    # 计算噪声点到所有中心点的距离
+                    distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
+                    # 选择最小距离，并应用调整因子
+                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
 
         return distances
 
