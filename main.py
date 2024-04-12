@@ -216,7 +216,7 @@ def draw(result_path,dataset_name, model_name):
 
         # 筛选出预测正确的样本的预测概率
         correct_probs = [prob for prob, predict, real in
-                         zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict == real]
+                         zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict == real and real == 1]
         correct_probabilities.append(correct_probs)
         means_correct.append(np.mean(correct_probs))
 
