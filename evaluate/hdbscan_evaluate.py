@@ -7,7 +7,7 @@ import pickle
 import torch.nn.functional as F
 import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import f1_score, roc_auc_score, roc_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch.utils.data import DataLoader, Subset
