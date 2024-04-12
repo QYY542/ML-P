@@ -16,11 +16,12 @@ from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_att
 from evaluate.mia_evaluate import attack_for_blackbox, attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
 
+
 # 添加噪音点的数据集训练出来的数据集隐私风险低
 class HDBSCANDataset:
     def __init__(self, dataset):
         self.dataset = dataset
-        self.min_cluster_size = 5
+        self.min_cluster_size = 4
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
@@ -35,41 +36,40 @@ class HDBSCANDataset:
         X_scaled = X_scaled.astype(np.float64)
         print("min_cluster_size = ", self.min_cluster_size)
 
-        # 使用HDBSCAN计算曼哈顿距离聚类
         clusterer = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size, gen_min_span_tree=True, metric='manhattan')
         clusterer.fit(X_scaled)
         return clusterer.labels_, X_scaled, clusterer.probabilities_
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        distances = np.zeros(len(X_scaled))  # 初始化距离数组为0
-        distance_adjustment_factor = 1 - probabilities  # 距离调整因子
+        # 计算每个簇的样本数量，并进行排序
+        cluster_sizes = {label: sum(labels == label) for label in unique_labels if label != -1}
+        sorted_clusters = sorted(cluster_sizes, key=cluster_sizes.get, reverse=True)
 
-        # 处理非噪声点
+        cluster_distance_base = {label: 1 + 0.5 * i for i, label in enumerate(sorted_clusters)}
+
+        distances = np.zeros(len(X_scaled))
+
         for label in unique_labels:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
-                # 计算聚类内每个点到其他所有点的曼哈顿距离
-                for i, point in enumerate(cluster_points):
-                    # 除自己外其他所有点的距离
-                    distances_to_others = np.sum(np.abs(cluster_points - point), axis=1)
-                    distances_to_others[i] = np.inf  # 将自己到自己的距离设置为无穷大
-                    nearest_distance = np.min(distances_to_others)
-                    # 应用调整因子
-                    adjusted_distance = nearest_distance * (1 + distance_adjustment_factor[labels == label][i])
-                    distances[labels == label][i] = adjusted_distance
+                center = cluster_points.mean(axis=0)
+                base_distance = cluster_distance_base[label]
+                adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1)
+                distances[labels == label] = base_distance + adjusted_distances
+            else:
+                noise_indices = np.where(labels == -1)[0]
+                print(len(noise_indices))
+                distances_to_centers = []
+                for index in noise_indices:
+                    noise_point = X_scaled[index]
+                    distances_to_centers.append(
+                        min([np.sum(np.abs(noise_point - X_scaled[labels == label].mean(axis=0))) for label in
+                             sorted_clusters]))
 
-        # 处理噪声点
-        if -1 in unique_labels:
-            noise_indices = np.where(labels == -1)[0]
-            all_cluster_points = X_scaled[labels != -1]
-            for index in noise_indices:
-                noise_point = X_scaled[index]
-                # 计算噪声点到所有非噪声点的曼哈顿距离
-                distances_to_non_noise = np.sum(np.abs(all_cluster_points - noise_point), axis=1)
-                nearest_distance = np.min(distances_to_non_noise)
-                # 应用调整因子
-                distances[index] = nearest_distance * (1 + distance_adjustment_factor[index])
+                max_cluster_distance = max(distances[labels != -1]) if len(distances[labels != -1]) > 0 else 0
+                for i, index in enumerate(noise_indices):
+                    distances[index] = max_cluster_distance + distances_to_centers[i]
 
         return distances
 
@@ -133,6 +133,7 @@ class HDBSCANDataset:
         print("聚类距离随机的样本分数:", random_shadow_values)
 
         return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset, distances
+
 
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
     # 加载攻击模型
@@ -213,9 +214,10 @@ def test_hdbscan_mia(PATH, device, num_classes, attack_trainloader, attack_testl
 def get_attack_dataset_with_shadow_hdbscan(target_train_min, target_test_min, target_train_max, target_test_max,
                                            target_train_noise, target_test_noise, target_train_random,
                                            target_test_random, shadow_train, shadow_test, batch_size=64):
-    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max,mem_test_noise, nonmem_test_noise, mem_test_random, nonmem_test_random = list(
+    mem_train, nonmem_train, mem_test_min, nonmem_test_min, mem_test_max, nonmem_test_max, mem_test_noise, nonmem_test_noise, mem_test_random, nonmem_test_random = list(
         shadow_train), list(shadow_test), list(target_train_min), list(
-        target_test_min), list(target_train_max), list(target_test_max),list(target_train_noise), list(target_test_noise), list(target_train_random), list(
+        target_test_min), list(target_train_max), list(target_test_max), list(target_train_noise), list(
+        target_test_noise), list(target_train_random), list(
         target_test_random)
 
     for i in range(len(mem_train)):
@@ -259,7 +261,7 @@ def get_attack_dataset_with_shadow_hdbscan(target_train_min, target_test_min, ta
 
     mem_test_noise, _ = torch.utils.data.random_split(mem_test_noise, [test_length, len(mem_test_noise) - test_length])
     non_mem_test_noise, _ = torch.utils.data.random_split(nonmem_test_noise,
-                                                        [test_length, len(nonmem_test_noise) - test_length])
+                                                          [test_length, len(nonmem_test_noise) - test_length])
 
     mem_test_random, _ = torch.utils.data.random_split(mem_test_random,
                                                        [test_length, len(mem_test_random) - test_length])
