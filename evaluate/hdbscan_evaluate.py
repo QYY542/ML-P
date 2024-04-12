@@ -45,29 +45,31 @@ class HDBSCANDataset:
         distances = np.zeros(len(X_scaled))  # 初始化距离数组为0
         distance_adjustment_factor = 1 - probabilities  # 距离调整因子
 
-        # 计算聚类中心
-        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
-
+        # 处理非噪声点
         for label in unique_labels:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
-                # 计算每个点到其它点的距离
-                for i in range(len(cluster_points)):
-                    distances_to_other_points = np.sum(np.abs(cluster_points - cluster_points[i]), axis=1)
-                    # 选择除自己外的最小距离
-                    nearest_distance = np.min(distances_to_other_points[distances_to_other_points > 0])
-                    # 应用距离调整因子
+                # 计算聚类内每个点到其他所有点的曼哈顿距离
+                for i, point in enumerate(cluster_points):
+                    # 除自己外其他所有点的距离
+                    distances_to_others = np.sum(np.abs(cluster_points - point), axis=1)
+                    distances_to_others[i] = np.inf  # 将自己到自己的距离设置为无穷大
+                    nearest_distance = np.min(distances_to_others)
+                    # 应用调整因子
                     adjusted_distance = nearest_distance * (1 + distance_adjustment_factor[labels == label][i])
                     distances[labels == label][i] = adjusted_distance
-            else:
-                # 处理噪声点
-                noise_indices = np.where(labels == -1)[0]
-                for index in noise_indices:
-                    noise_point = X_scaled[index]
-                    # 计算噪声点到所有中心点的距离
-                    distances_to_centers = [np.sum(np.abs(noise_point - center)) for center in cluster_centers.values()]
-                    # 选择最小距离，并应用调整因子
-                    distances[index] = np.min(distances_to_centers) * (1 + distance_adjustment_factor[index])
+
+        # 处理噪声点
+        if -1 in unique_labels:
+            noise_indices = np.where(labels == -1)[0]
+            all_cluster_points = X_scaled[labels != -1]
+            for index in noise_indices:
+                noise_point = X_scaled[index]
+                # 计算噪声点到所有非噪声点的曼哈顿距离
+                distances_to_non_noise = np.sum(np.abs(all_cluster_points - noise_point), axis=1)
+                nearest_distance = np.min(distances_to_non_noise)
+                # 应用调整因子
+                distances[index] = nearest_distance * (1 + distance_adjustment_factor[index])
 
         return distances
 
