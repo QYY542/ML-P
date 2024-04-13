@@ -1,4 +1,5 @@
 from sklearn.metrics.pairwise import cosine_distances
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import DataLoader, Subset
 import numpy as np
@@ -42,34 +43,27 @@ class HDBSCANDataset:
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        # 计算每个簇的样本数量
-        cluster_sizes = {label: sum(labels == label) for label in unique_labels if label != -1}
 
-        # 新建一个字典来存储密度计算的结果
-        cluster_distance_base = {}
-        for label in unique_labels:
-            if label != -1:
-                cluster_points = X_scaled[labels == label]
-                center = cluster_points.mean(axis=0)
-                # 计算到中心点的平均曼哈顿距离
-                mean_distance_to_center = np.mean(np.sum(np.abs(cluster_points - center), axis=1))
-                # 使用样本数量除以平均距离作为密度
-                if mean_distance_to_center > 0:
-                    cluster_distance_base[label] = cluster_sizes[label] / mean_distance_to_center
-                else:
-                    cluster_distance_base[label] = 0
+        # 计算每个簇的中心点
+        cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
+        # 计算全局中心点
+        if cluster_centers:
+            global_center = np.mean(list(cluster_centers.values()), axis=0)
+        else:
+            global_center = np.zeros(X_scaled.shape[1])
+
+        # 距离计算，增加归属概率的影响
         distances = np.zeros(len(X_scaled))
-        for label in unique_labels:
-            if label != -1:
-                # 对非噪声点应用归属概率调整
-                distances[labels == label] = cluster_distance_base[label] * (1 - probabilities[labels == label])
+        for i in range(X_scaled.shape[0]):
+            base_distance = np.sum(np.abs(X_scaled[i] - global_center))
+            # 引入簇内外距离差异的影响，使用归属概率调整
+            if labels[i] != -1:
+                cluster_density = len(X_scaled[labels == labels[i]]) / np.mean(
+                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], axis=1))
+                distances[i] = (base_distance * (1 + 0.5 / probabilities[i])) / cluster_density
             else:
-                noise_indices = np.where(labels == -1)[0]
-                max_cluster_distance = max(cluster_distance_base.values(), default=0)  # 使用default以防没有非噪声簇
-                for index in noise_indices:
-                    # 噪声点的距离为最大簇距离加上到最近簇中心的距离
-                    distances[index] = max_cluster_distance + np.min([np.sum(np.abs(X_scaled[index] - X_scaled[labels == other_label].mean(axis=0))) for other_label in unique_labels if other_label != -1])
+                distances[i] = base_distance * 2  # 噪音点赋予更高的基础距离
 
         return distances
 
@@ -146,13 +140,15 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
     final_test_ground_truth = []
     final_test_prediction = []
     final_test_probability = []
+    # 新增统计计数器
+    predicted_members_correct = 0
+    predicted_members_total = 0
 
     with torch.no_grad():
         with open(test_set_path, "rb") as f:
             while True:
                 try:
                     output, prediction, members = pickle.load(f)
-                    # 确保数据在正确的设备上
                     output, prediction, members = output.to(attack_model.device), prediction.to(
                         attack_model.device), members.to(attack_model.device)
 
@@ -160,6 +156,12 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
                     _, predicted = results.max(1)
                     total += members.size(0)
                     correct += predicted.eq(members).sum().item()
+
+                    # 更新新增计数器
+                    predicted_members = predicted == 1
+                    predicted_members_total += predicted_members.sum().item()
+                    predicted_members_correct += (predicted == members).logical_and(predicted == 1).sum().item()
+
                     probabilities = F.softmax(results, dim=1)
                     final_test_ground_truth.append(members)
                     final_test_prediction.append(predicted)
@@ -171,21 +173,16 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
     final_test_prediction = torch.cat(final_test_prediction, dim=0).cpu().numpy()
     final_test_probability = torch.cat(final_test_probability, dim=0).cpu().numpy()
 
-    test_f1_score = f1_score(final_test_ground_truth, final_test_prediction)
-    test_roc_auc_score = roc_auc_score(final_test_ground_truth, final_test_probability)
-    fpr, tpr, thresholds = roc_curve(final_test_ground_truth, final_test_probability)
-
-    # 选择一个FPR阈值，如0.05（5%），并找到对应的TPR
-    target_fpr = 0.05
-    closest_fpr_idx = (np.abs(fpr - target_fpr)).argmin()
-    tpr_at_low_fpr = tpr[closest_fpr_idx]
-
     with open(result_path, "wb") as f:
         pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
 
     print("Saved Attack Test Ground Truth and Predict Sets")
-    print("Test F1: %f\nAUC: %f" % (test_f1_score, test_roc_auc_score))
-    print("TPR at 5%% FPR: %.3f" % tpr_at_low_fpr)
+    # 输出正确且为成员的样本与预测为成员的样本的比值
+    if predicted_members_total > 0:
+        precision = predicted_members_correct / predicted_members_total
+        print("Precision of Correct Member Predictions: %.3f" % precision)
+    else:
+        print("No member predictions were made.")
 
     test_acc = 1.0 * correct / total
     print('Test Acc: %.3f%% (%d/%d)' % (100. * test_acc, correct, total))
