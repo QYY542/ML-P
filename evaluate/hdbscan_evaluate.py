@@ -43,27 +43,29 @@ class HDBSCANDataset:
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-
-        # 计算每个簇的中心点
         cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
         # 计算全局中心点
-        if cluster_centers:
-            global_center = np.mean(list(cluster_centers.values()), axis=0)
-        else:
-            global_center = np.zeros(X_scaled.shape[1])
+        global_center = np.mean(list(cluster_centers.values()), axis=0) if cluster_centers else np.zeros(
+            X_scaled.shape[1])
 
-        # 距离计算，增加归属概率的影响
         distances = np.zeros(len(X_scaled))
         for i in range(X_scaled.shape[0]):
-            base_distance = np.sum(np.abs(X_scaled[i] - global_center))
-            # 引入簇内外距离差异的影响，使用归属概率调整
             if labels[i] != -1:
-                cluster_density = len(X_scaled[labels == labels[i]]) / np.mean(
-                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], axis=1))
-                distances[i] = (base_distance * (1 + 0.5 / probabilities[i])) / cluster_density
+                cluster_label = labels[i]
+                cluster_center = cluster_centers[cluster_label]
+                local_distance = np.sum(np.abs(X_scaled[i] - cluster_center))
+                global_distance = np.sum(np.abs(X_scaled[i] - global_center))
+                density_factor = len(X_scaled[labels == cluster_label]) / np.linalg.norm(
+                    X_scaled[labels == cluster_label] - cluster_center, axis=1).mean()
+
+                # 综合本地和全局距离，考虑归属概率和密度因素
+                adjusted_distance = (local_distance / density_factor + global_distance) * (1 / probabilities[i])
+                distances[i] = adjusted_distance
             else:
-                distances[i] = base_distance * 2  # 噪音点赋予更高的基础距离
+                # 噪音点处理
+                global_distance = np.sum(np.abs(X_scaled[i] - global_center))
+                distances[i] = global_distance * 2  # 噪音点赋予更高的基础距离
 
         return distances
 
