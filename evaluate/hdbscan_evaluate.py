@@ -27,7 +27,7 @@ class HDBSCANDataset:
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
         for X, _ in loader:
             X = X.numpy()
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         return X_scaled
 
@@ -42,34 +42,34 @@ class HDBSCANDataset:
 
     def get_distances_and_probabilities(self, labels, X_scaled, probabilities):
         unique_labels = np.unique(labels)
-        # 计算每个簇的样本数量，并进行排序
+        # 计算每个簇的样本数量
         cluster_sizes = {label: sum(labels == label) for label in unique_labels if label != -1}
-        sorted_clusters = sorted(cluster_sizes, key=cluster_sizes.get, reverse=True)
 
-        cluster_distance_base = {label: 1 + 0.5 * i for i, label in enumerate(sorted_clusters)}
-
-        distances = np.zeros(len(X_scaled))
-
+        # 新建一个字典来存储密度计算的结果
+        cluster_distance_base = {}
         for label in unique_labels:
             if label != -1:
                 cluster_points = X_scaled[labels == label]
                 center = cluster_points.mean(axis=0)
-                base_distance = cluster_distance_base[label]
-                adjusted_distances = np.sum(np.abs(cluster_points - center), axis=1)
-                distances[labels == label] = base_distance + adjusted_distances
+                # 计算到中心点的平均曼哈顿距离
+                mean_distance_to_center = np.mean(np.sum(np.abs(cluster_points - center), axis=1))
+                # 使用样本数量除以平均距离作为密度
+                if mean_distance_to_center > 0:
+                    cluster_distance_base[label] = cluster_sizes[label] / mean_distance_to_center
+                else:
+                    cluster_distance_base[label] = 0
+
+        distances = np.zeros(len(X_scaled))
+        for label in unique_labels:
+            if label != -1:
+                # 对非噪声点应用归属概率调整
+                distances[labels == label] = cluster_distance_base[label] * (1 - probabilities[labels == label])
             else:
                 noise_indices = np.where(labels == -1)[0]
-                print(len(noise_indices))
-                distances_to_centers = []
+                max_cluster_distance = max(cluster_distance_base.values(), default=0)  # 使用default以防没有非噪声簇
                 for index in noise_indices:
-                    noise_point = X_scaled[index]
-                    distances_to_centers.append(
-                        min([np.sum(np.abs(noise_point - X_scaled[labels == label].mean(axis=0))) for label in
-                             sorted_clusters]))
-
-                max_cluster_distance = max(distances[labels != -1]) if len(distances[labels != -1]) > 0 else 0
-                for i, index in enumerate(noise_indices):
-                    distances[index] = max_cluster_distance + distances_to_centers[i]
+                    # 噪声点的距离为最大簇距离加上到最近簇中心的距离
+                    distances[index] = max_cluster_distance + np.min([np.sum(np.abs(X_scaled[index] - X_scaled[labels == other_label].mean(axis=0))) for other_label in unique_labels if other_label != -1])
 
         return distances
 
