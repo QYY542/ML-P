@@ -10,7 +10,7 @@ class ShadowAttackModel(nn.Module):
             nn.Linear(class_num, 256),  # 增加神经元数量
             nn.BatchNorm1d(256),  # 添加批量归一化
             nn.ReLU(),
-            nn.Dropout(p=0.3),  # 添加Dropout
+            nn.Dropout(p=0.5),  # 添加Dropout
             nn.Linear(256, 128),
             nn.ReLU(),
         )
@@ -19,7 +19,7 @@ class ShadowAttackModel(nn.Module):
             nn.Linear(1, 256),  # 与Output_Component保持一致
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.5),
             nn.Linear(256, 128),
             nn.ReLU(),
         )
@@ -28,7 +28,7 @@ class ShadowAttackModel(nn.Module):
             nn.Linear(256, 512),  # 增加复杂度
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.5),
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.Linear(256, 64),
@@ -96,7 +96,7 @@ class PartialAttackModel(nn.Module):
 
 # MLP
 class MLP(nn.Module):
-    def __init__(self, input_size, num_classes, dropout=0.4):
+    def __init__(self, input_size, num_classes, dropout=0.5):
         super(MLP, self).__init__()
         # 定义网络层
         self.fc1 = nn.Linear(input_size, 256)

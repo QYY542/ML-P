@@ -1,3 +1,4 @@
+from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_distances
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -12,7 +13,7 @@ from sklearn.metrics import f1_score, roc_auc_score, roc_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch.utils.data import DataLoader, Subset
-
+import matplotlib.pyplot as plt
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
 from evaluate.mia_evaluate import attack_for_blackbox, attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
@@ -22,7 +23,7 @@ from models.define_models import ShadowAttackModel, PartialAttackModel
 class HDBSCANDataset:
     def __init__(self, dataset):
         self.dataset = dataset
-        self.min_cluster_size = 4
+        self.min_cluster_size = 3
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
@@ -48,28 +49,56 @@ class HDBSCANDataset:
         cluster_centers = {label: X_scaled[labels == label].mean(axis=0) for label in unique_labels if label != -1}
 
         # 计算全局中心点
-        if cluster_centers:
-            global_center = np.mean(list(cluster_centers.values()), axis=0)
-        else:
-            global_center = np.zeros(X_scaled.shape[1])
+        global_center = np.mean(X_scaled, axis=0) if len(cluster_centers) > 0 else np.zeros(X_scaled.shape[1])
 
         # 距离计算，增加归属概率的影响
         distances = np.zeros(len(X_scaled))
         for i in range(X_scaled.shape[0]):
-            base_distance = np.sum(np.abs(X_scaled[i] - global_center))
-            # 引入簇内外距离差异的影响，使用归属概率调整
             if labels[i] != -1:
+                # 簇内的点
                 cluster_density = len(X_scaled[labels == labels[i]]) / np.mean(
                     np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], axis=1))
-                distances[i] = (base_distance * (1 + 0.5 / probabilities[i])) / cluster_density
+                base_distance = np.sum(np.abs(X_scaled[i] - global_center))
+                adjusted_distance = (base_distance * (1.5 - probabilities[i])) / cluster_density
+                distances[i] = adjusted_distance
             else:
-                distances[i] = base_distance  # 噪音点赋予更高的基础距离
+                # 噪声点，赋予更高的基础距离
+                distances[i] = np.sum(np.abs(X_scaled[i] - global_center)) * 1.5
 
         return distances
+
+    def visualize_clusters(self, X_scaled, labels):
+        # 将数据降维到二维
+        pca = PCA(n_components=3)
+        X_pca = pca.fit_transform(X_scaled)
+
+        plt.figure(figsize=(12, 8))
+        unique_labels = np.unique(labels)
+        colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
+
+        for k, col in zip(unique_labels, colors):
+            if k == -1:
+                # 黑色用于噪声点
+                col = 'k'
+
+            class_member_mask = (labels == k)
+
+            xy = X_pca[class_member_mask]
+            plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
+                     markeredgecolor='k', markersize=6 if k == -1 else 10,
+                     alpha=0.6 if k == -1 else 0.8)
+
+        plt.title('Clustered data by HDBSCAN (PCA Reduced)')
+        plt.xlabel('PCA Component 1')
+        plt.ylabel('PCA Component 2')
+        plt.grid(True)
+        plt.show()
+
 
     def get_specific_datasets_and_distances(self, n):
         labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
         distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
+        self.visualize_clusters(X_scaled, labels)
 
         # 找出非噪声点的索引
         non_noise_indices = np.where(labels != -2)[0]
@@ -121,10 +150,12 @@ class HDBSCANDataset:
                                         index not in low_distance_indices]
         without_low_distance_dataset = Subset(self.dataset, without_low_distance_indices)
 
+
         print("簇内聚类距离小的样本分数:", low_distance_values)
         print("簇内聚类距离大的样本分数:", high_distance_values)
         print("噪音点距离最大的样本分数：", selected_noise_distances)
         print("聚类距离随机的样本分数:", random_shadow_values)
+        print(len(noise_indices))
 
         return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset, distances
 
