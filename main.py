@@ -42,7 +42,7 @@ def test_QID(dataset_name):
         dataset = Adult(qid_indices=qid_indices)
 
     # 打印前两个样本
-    for i in range(2):
+    for i in range(15):
         X, target = dataset[i]
         print(f'Sample {i}: {X}, Target: {target}')
 
