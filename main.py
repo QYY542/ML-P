@@ -41,11 +41,6 @@ def test_QID(dataset_name):
         qid_indices = [0, 8, 9, 13]
         dataset = Adult(qid_indices=qid_indices)
 
-    # 打印前两个样本
-    for i in range(15):
-        X, target = dataset[i]
-        print(f'Sample {i}: {X}, Target: {target}')
-
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
 
@@ -92,9 +87,9 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
 
     TARGET_PATH = "./dataloader/trained_model/" + dataset_name + model_name
 
-    # 取400份样本的数据
+    # 1/6份样本的数据
     dataset_len = len(dataset)
-    n = 400
+    n = dataset_len // 6
 
     # 获取三类数据集 min max random
     evaluator = HDBSCANDataset(dataset)

@@ -45,6 +45,7 @@ def get_attack_dataset_with_shadow(target_train, target_test, shadow_train, shad
     mem_train, nonmem_train, mem_test, nonmem_test = list(shadow_train), list(shadow_test), list(target_train), list(
         target_test)
 
+    # 区分成员和非成员列
     for i in range(len(mem_train)):
         mem_train[i] = mem_train[i] + (1,)
     for i in range(len(nonmem_train)):
@@ -62,6 +63,7 @@ def get_attack_dataset_with_shadow(target_train, target_test, shadow_train, shad
     mem_test, _ = torch.utils.data.random_split(mem_test, [test_length, len(mem_test) - test_length])
     non_mem_test, _ = torch.utils.data.random_split(nonmem_test, [test_length, len(nonmem_test) - test_length])
 
+    # 合并数据集形成攻击模型的训练数据集和测试数据集
     attack_train = mem_train + non_mem_train
     attack_test = mem_test + non_mem_test
 

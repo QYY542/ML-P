@@ -67,34 +67,6 @@ class HDBSCANDataset:
 
         return distances
 
-    # def visualize_clusters(self, X_scaled, labels):
-    #     # 将数据降维到二维
-    #     pca = PCA(n_components=3)
-    #     X_pca = pca.fit_transform(X_scaled)
-    #
-    #     plt.figure(figsize=(12, 8))
-    #     unique_labels = np.unique(labels)
-    #     colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
-    #
-    #     for k, col in zip(unique_labels, colors):
-    #         if k == -1:
-    #             # 黑色用于噪声点
-    #             col = 'k'
-    #
-    #         class_member_mask = (labels == k)
-    #
-    #         xy = X_pca[class_member_mask]
-    #         plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
-    #                  markeredgecolor='k', markersize=6 if k == -1 else 10,
-    #                  alpha=0.6 if k == -1 else 0.8)
-    #
-    #     plt.title('Clustered data by HDBSCAN (PCA Reduced)')
-    #     plt.xlabel('PCA Component 1')
-    #     plt.ylabel('PCA Component 2')
-    #     plt.grid(True)
-    #     plt.show()
-
-
     def get_specific_datasets_and_distances(self, n):
         labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
         distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)

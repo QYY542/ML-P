@@ -52,6 +52,7 @@ class attack_for_blackbox():
         self.model_name = model_name
         self.num_features = num_features
 
+    # 获取模型的预测标签和预测向量
     def _get_data(self, model, inputs, targets):
         if self.model_name == "ResNet":
             inputs = inputs.reshape(inputs.shape[0], 1, self.num_features)
@@ -64,6 +65,7 @@ class attack_for_blackbox():
         prediction = predicts.eq(targets).float()
         return output, prediction.unsqueeze(-1)
 
+    # 根据影子模型和目标模型获取数据
     def prepare_dataset(self):
         # self.ATTACK_SETS = attack_sets
         with open(self.ATTACK_SETS + "train.p", "wb") as f:
@@ -73,7 +75,8 @@ class attack_for_blackbox():
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 output, prediction = self._get_data(self.shadow_model, inputs, targets)
                 # output = output.cpu().detach().numpy()
-
+                print(output)
+                print(prediction)
                 pickle.dump((output, prediction, members), f)
 
         print("Finished Saving Train Dataset")
