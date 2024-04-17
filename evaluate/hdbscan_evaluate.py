@@ -23,7 +23,7 @@ from models.define_models import ShadowAttackModel, PartialAttackModel
 class HDBSCANDataset:
     def __init__(self, dataset):
         self.dataset = dataset
-        self.min_cluster_size = 3
+        self.min_cluster_size = 4
 
     def load_and_scale_data(self):
         loader = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
@@ -67,12 +67,52 @@ class HDBSCANDataset:
 
         return distances
 
+    def fit_pca(self, X_scaled, n_components=2):
+        # 训练PCA模型并保留模型以便后续使用
+        pca = PCA(n_components=n_components)
+        pca.fit(X_scaled)
+        return pca
+
+    def visualize_clusters(self, X_scaled, labels, pca, label_color_map, figsize=(12, 8)):
+        # 使用已经训练好的PCA模型进行降维
+        X_pca = pca.transform(X_scaled)
+
+        plt.figure(figsize=figsize)
+        unique_labels = np.unique(labels)
+
+
+        for k in unique_labels:
+            col = label_color_map.get(k, 'grey')  # 对未指定颜色的标签使用灰色
+
+            class_member_mask = (labels == k)
+            xy = X_pca[class_member_mask]
+            plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
+                     markeredgecolor='k', markersize=6 if k == -1 else 10,
+                     alpha=0.6 if k == -1 else 0.8)
+
+        plt.title('Clustered data by HDBSCAN (PCA Reduced)')
+        plt.xlabel('PCA Component 1')
+        plt.ylabel('PCA Component 2')
+        plt.grid(True)
+        plt.show()
     def get_specific_datasets_and_distances(self, n):
         labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
         distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
+        pca = self.fit_pca(X_scaled)
+        unique_labels = np.unique(labels)
+        colors = plt.cm.get_cmap('nipy_spectral', len(unique_labels))  # 使用nipy_spectral颜色映射，生成100种颜色
+
+        label_color_map = {
+            -1: 'black',  # 噪声点使用黑色
+        }
+
+        # 为每个标签从0到98分配颜色
+        for i in range(len(unique_labels)):
+            label_color_map[i] = colors(i)
+
 
         # 找出非噪声点的索引
-        non_noise_indices = np.where(labels != -2)[0]
+        non_noise_indices = np.where(labels != -1)[0]
         # 找出噪声点的索引
         noise_indices = np.where(labels == -1)[0]
 
@@ -84,6 +124,7 @@ class HDBSCANDataset:
         sorted_indices = non_noise_indices[sorted_indices_tmp]
 
         low_distance_indices = sorted_indices[:n]
+
         high_distance_indices = sorted_indices[-n:]
 
         # 对噪声点的距离进行处理
@@ -104,6 +145,14 @@ class HDBSCANDataset:
         random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
+
+        self.visualize_clusters(X_scaled, labels, pca, label_color_map)
+        self.visualize_clusters(X_scaled[low_distance_indices], labels[low_distance_indices], pca, label_color_map)
+        self.visualize_clusters(X_scaled[high_distance_indices], labels[high_distance_indices], pca, label_color_map)
+        self.visualize_clusters(X_scaled[selected_noise_indices], labels[selected_noise_indices], pca, label_color_map)
+        self.visualize_clusters(X_scaled[random_indices], labels[random_indices], pca, label_color_map)
+        self.visualize_clusters(X_scaled[random_shadow_indices], labels[random_shadow_indices], pca, label_color_map)
+        self.visualize_clusters(X_scaled[test_indices], labels[test_indices],pca, label_color_map)
 
         # 创建对应的Subset
         low_distance_dataset = Subset(self.dataset, low_distance_indices)
