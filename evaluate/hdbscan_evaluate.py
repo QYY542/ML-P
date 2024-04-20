@@ -57,7 +57,7 @@ class HDBSCANDataset:
             if labels[i] != -1:
                 # 簇内的点
                 cluster_density = len(X_scaled[labels == labels[i]]) / np.mean(
-                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], axis=1))
+                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], ord=1, axis=1))
                 base_distance = np.sum(np.abs(X_scaled[i] - global_center))
                 adjusted_distance = (base_distance * (1.5 - probabilities[i])) / cluster_density
                 distances[i] = adjusted_distance
@@ -146,13 +146,13 @@ class HDBSCANDataset:
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
 
-        self.visualize_clusters(X_scaled, labels, pca, label_color_map)
-        self.visualize_clusters(X_scaled[low_distance_indices], labels[low_distance_indices], pca, label_color_map)
-        self.visualize_clusters(X_scaled[high_distance_indices], labels[high_distance_indices], pca, label_color_map)
-        self.visualize_clusters(X_scaled[selected_noise_indices], labels[selected_noise_indices], pca, label_color_map)
-        self.visualize_clusters(X_scaled[random_indices], labels[random_indices], pca, label_color_map)
-        self.visualize_clusters(X_scaled[random_shadow_indices], labels[random_shadow_indices], pca, label_color_map)
-        self.visualize_clusters(X_scaled[test_indices], labels[test_indices],pca, label_color_map)
+        # self.visualize_clusters(X_scaled, labels, pca, label_color_map)
+        # self.visualize_clusters(X_scaled[low_distance_indices], labels[low_distance_indices], pca, label_color_map)
+        # self.visualize_clusters(X_scaled[high_distance_indices], labels[high_distance_indices], pca, label_color_map)
+        # self.visualize_clusters(X_scaled[selected_noise_indices], labels[selected_noise_indices], pca, label_color_map)
+        # self.visualize_clusters(X_scaled[random_indices], labels[random_indices], pca, label_color_map)
+        # self.visualize_clusters(X_scaled[random_shadow_indices], labels[random_shadow_indices], pca, label_color_map)
+        # self.visualize_clusters(X_scaled[test_indices], labels[test_indices],pca, label_color_map)
 
         # 创建对应的Subset
         low_distance_dataset = Subset(self.dataset, low_distance_indices)
@@ -191,9 +191,11 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
     final_test_ground_truth = []
     final_test_prediction = []
     final_test_probability = []
+
     # 新增统计计数器
     predicted_members_correct = 0
     predicted_members_total = 0
+    actual_members_total = 0
 
     with torch.no_grad():
         with open(test_set_path, "rb") as f:
@@ -210,7 +212,9 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
 
                     # 更新新增计数器
                     predicted_members = predicted == 1
+                    actual_members = members == 1
                     predicted_members_total += predicted_members.sum().item()
+                    actual_members_total += actual_members.sum().item()
                     predicted_members_correct += (predicted == members).logical_and(predicted == 1).sum().item()
 
                     probabilities = F.softmax(results, dim=1)
@@ -228,14 +232,21 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
         pickle.dump((final_test_ground_truth, final_test_prediction, final_test_probability), f)
 
     print("Saved Attack Test Ground Truth and Predict Sets")
-    # 输出正确且为成员的样本与预测为成员的样本的比值
+
+    # 计算精确度（Precision）和召回率（Recall）
     if predicted_members_total > 0:
         precision = predicted_members_correct / predicted_members_total
         print("Precision of Correct Member Predictions: %.3f" % precision)
     else:
         print("No member predictions were made.")
 
-    test_acc = 1.0 * correct / total
+    if actual_members_total > 0:
+        recall = predicted_members_correct / actual_members_total
+        print("Recall of Correct Member Predictions: %.3f" % recall)
+    else:
+        print("No actual members to predict.")
+
+    test_acc = correct / total
     print('Test Acc: %.3f%% (%d/%d)' % (100. * test_acc, correct, total))
 
     return test_acc

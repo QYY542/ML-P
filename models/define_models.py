@@ -56,7 +56,7 @@ class PartialAttackModel(nn.Module):
             nn.Linear(class_num, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.5),
             nn.Linear(256, 128),
             nn.ReLU(),
         )
@@ -65,7 +65,7 @@ class PartialAttackModel(nn.Module):
             nn.Linear(1, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.5),
             nn.Linear(256, 128),
             nn.ReLU(),
         )
@@ -74,7 +74,7 @@ class PartialAttackModel(nn.Module):
             nn.Linear(256, 512),  # 增加输入特征的维度来匹配上一层的输出
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.5),
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.Linear(256, 64),
