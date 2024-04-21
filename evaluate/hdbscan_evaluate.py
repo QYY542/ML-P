@@ -57,7 +57,7 @@ class HDBSCANDataset:
             if labels[i] != -1:
                 # 簇内的点
                 cluster_density = len(X_scaled[labels == labels[i]]) / np.mean(
-                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], ord=1, axis=1))
+                    np.linalg.norm(X_scaled[labels == labels[i]] - cluster_centers[labels[i]], axis=1))
                 base_distance = np.sum(np.abs(X_scaled[i] - global_center))
                 adjusted_distance = (base_distance * (1.5 - probabilities[i])) / cluster_density
                 distances[i] = adjusted_distance
