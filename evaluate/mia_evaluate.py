@@ -75,8 +75,7 @@ class attack_for_blackbox():
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 output, prediction = self._get_data(self.shadow_model, inputs, targets)
                 # output = output.cpu().detach().numpy()
-                print(output)
-                print(prediction)
+
                 pickle.dump((output, prediction, members), f)
 
         print("Finished Saving Train Dataset")

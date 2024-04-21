@@ -186,8 +186,8 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     print("========RANDOM_dataset========")
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes)
 
-    draw(result_path,dataset_name, model_name)
-    draw_tpr(result_path,dataset_name, model_name)
+    # draw(result_path,dataset_name, model_name)
+    # draw_tpr(result_path,dataset_name, model_name)
 
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
