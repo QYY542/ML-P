@@ -14,7 +14,8 @@ from evaluate.qid_evaluate import QID_VE
 from models.train_models import *
 from models.define_models import *
 from dataloader.dataloader import *
-
+import matplotlib.pyplot as plt
+import csv
 
 def test_QID(dataset_name):
     if dataset_name == 'Student':
@@ -430,8 +431,10 @@ def main():
         test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(dataset_name, model_name,
                                                                                               mode, args.train_target,
                                                                                               args.train_shadow, device)
-        std_cluster_success_rate = (sum((x - mean_cluster_success_rate) ** 2 for x in
-                                        [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]) / 4) ** 0.5
+        cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
+        mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
+        std_HDBSCAN = (sum((x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
+            cluster_attack_success_rates)) ** 0.5
 
         # ====MIA分析==== #
         if args.train_target:
@@ -443,26 +446,26 @@ def main():
 
         # 读取MIA分析结果
         with open(TARGET_PATH + "_meminf_attack0.p", "rb") as f:
-            final_train_probabe = pickle.load(f)
+            _, _, final_train_probabe = pickle.load(f)
 
         # 计算样本隐私风险评分 (SPRS) 并归一化
-        sprs_scores = [(idx, (prob + (1 / (dist + 1e-6))) * np.log(1 + std_QID)) for idx, (prob, dist) in
+        sprs_scores = [(idx, (prob * (1 / (dist + 1e-6) + np.log(1 + std_QID)))) for idx, (prob, dist) in
                        enumerate(zip(final_train_probabe, distances))]
         max_sprs = max(score for _, score in sprs_scores)
         min_sprs = min(score for _, score in sprs_scores)
         normalized_sprs_scores = [(idx, 10 * (score - min_sprs) / (max_sprs - min_sprs)) for idx, score in sprs_scores]
 
         # 保存归一化后的SPRS评分到CSV文件
-        with open('normalized_sprs_scores.csv', 'w', newline='') as f:
+        with open(TARGET_PATH + 'normalized_sprs_scores.csv', 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Sample Index', 'Normalized SPRS'])
             writer.writerows(normalized_sprs_scores)
 
         # 定义权重因子
-        alpha, beta = 1, 1
+        alpha, beta = 0.5, 0.5
 
         # 计算数据集的综合隐私评分 (OPRS)
-        oprs_score = test_acc * (1 + alpha * std_QID + beta * std_cluster_success_rate)
+        oprs_score = test_acc * (1 + alpha * std_QID + beta * std_HDBSCAN)
 
         # 输出结果
         print(f"数据集的综合隐私评分 (OPRS) 为: {oprs_score:.4f}")
@@ -475,9 +478,8 @@ def main():
         plt.xlabel('Sample Index')
         plt.ylabel('Normalized SPRS')
         plt.grid(True)
-        plt.savefig("All_Samples_Privacy_Risk_Scores.png")
+        plt.savefig(TARGET_PATH + "All_Samples_Privacy_Risk_Scores.png")
         plt.show()
-
 
 def fix_seed(num):
     # Set the random seed for NumPy
