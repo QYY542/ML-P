@@ -29,7 +29,7 @@ def test_QID(dataset_name):
     elif dataset_name == "obesity" or dataset_name == "protected_obesity":
         DP = None
         if dataset_name == "protected_obesity":
-            DP = [0, 1, 2, 3]
+            DP = [2, 3]
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
@@ -38,7 +38,7 @@ def test_QID(dataset_name):
     elif dataset_name == "adult" or dataset_name == "protected_adult":
         DP = None
         if dataset_name == "protected_adult":
-            DP = [0, 8, 9, 13]
+            DP = [0, 9]
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
