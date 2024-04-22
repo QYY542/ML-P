@@ -7,7 +7,6 @@ from evaluate.hdbscan_evaluate import HDBSCANDataset, evaluate_attack_model, tes
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
 from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
-from dataloader.dataloader_hospital import Hospital
 from dataloader.dataloader_obesity import Obesity
 from dataloader.dataloader_student import Student
 from evaluate.qid_evaluate import QID_VE
@@ -18,27 +17,27 @@ import matplotlib.pyplot as plt
 import csv
 
 def test_QID(dataset_name):
-    if dataset_name == "student" or dataset_name == "Protected_student":
+    if dataset_name == "student" or dataset_name == "protected_student":
         DP = False
-        if dataset_name == "Protected_student":
+        if dataset_name == "protected_student":
             DP = True
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
         dataset = Student(filename = dataset_name, qid_indices=qid_indices, DP=DP)
 
-    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
+    elif dataset_name == "obesity" or dataset_name == "protected_obesity":
         DP = False
-        if dataset_name == "Protected_obesity":
+        if dataset_name == "protected_obesity":
             DP = True
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
         dataset = Obesity(filename = dataset_name, qid_indices=qid_indices, DP=DP)
 
-    elif dataset_name == "adult" or dataset_name == "Protected_adult":
+    elif dataset_name == "adult" or dataset_name == "protected_adult":
         DP = False
-        if dataset_name == "Protected_adult":
+        if dataset_name == "protected_adult":
             DP = True
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
@@ -69,15 +68,15 @@ def test_QID(dataset_name):
 
 def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 数据集
-    if dataset_name == "adult" or dataset_name == "Protected_adult":
+    if dataset_name == "adult" or dataset_name == "protected_adult":
         print("Adult")
         dataset = Adult(filename = dataset_name)
         num_classes = 2
-    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
+    elif dataset_name == "obesity" or dataset_name == "protected_obesity":
         print("Obesity")
         dataset = Obesity(filename = dataset_name)
         num_classes = 7
-    elif dataset_name == "student" or dataset_name == "Protected_student":
+    elif dataset_name == "student" or dataset_name == "protected_student":
         print("Student")
         dataset = Student(filename = dataset_name)
         num_classes = 3
@@ -324,15 +323,15 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
 
 def prepare_dataset(dataset_name, model_name):
     # 数据集
-    if dataset_name == "adult" or dataset_name == "Protected_adult":
+    if dataset_name == "adult" or dataset_name == "protected_adult":
         print("Adult")
         dataset = Adult(filename = dataset_name)
         num_classes = 2
-    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
+    elif dataset_name == "obesity" or dataset_name == "protected_obesity":
         print("Obesity")
         dataset = Obesity(filename = dataset_name)
         num_classes = 7
-    elif dataset_name == "student" or dataset_name == "Protected_student":
+    elif dataset_name == "student" or dataset_name == "protected_student":
         print("Student")
         dataset = Student(filename = dataset_name)
         num_classes = 3
