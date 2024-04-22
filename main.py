@@ -22,19 +22,19 @@ def test_QID(dataset_name):
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
-        dataset = Student(dataset_name = dataset_name, qid_indices=qid_indices)
+        dataset = Student(filename = dataset_name, qid_indices=qid_indices)
 
     elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
-        dataset = Obesity(dataset_name = dataset_name, qid_indices=qid_indices)
+        dataset = Obesity(filename = dataset_name, qid_indices=qid_indices)
 
     elif dataset_name == "adult" or dataset_name == "Protected_adult":
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
-        dataset = Adult(dataset_name = dataset_name, qid_indices=qid_indices)
+        dataset = Adult(filename = dataset_name, qid_indices=qid_indices)
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
@@ -60,15 +60,15 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     # 数据集
     if dataset_name == "adult" or dataset_name == "Protected_adult":
         print("Adult")
-        dataset = Adult(dataset_name = dataset_name)
+        dataset = Adult(filename = dataset_name)
         num_classes = 2
     elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         print("Obesity")
-        dataset = Obesity(dataset_name = dataset_name)
+        dataset = Obesity(filename = dataset_name)
         num_classes = 7
     elif dataset_name == "student" or dataset_name == "Protected_student":
         print("Student")
-        dataset = Student(dataset_name = dataset_name)
+        dataset = Student(filename = dataset_name)
         num_classes = 3
 
     # 打印前两个样本
@@ -315,15 +315,15 @@ def prepare_dataset(dataset_name, model_name):
     # 数据集
     if dataset_name == "adult" or dataset_name == "Protected_adult":
         print("Adult")
-        dataset = Adult(dataset_name = dataset_name)
+        dataset = Adult(filename = dataset_name)
         num_classes = 2
     elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         print("Obesity")
-        dataset = Obesity(dataset_name = dataset_name)
+        dataset = Obesity(filename = dataset_name)
         num_classes = 7
     elif dataset_name == "student" or dataset_name == "Protected_student":
         print("Student")
-        dataset = Student(dataset_name = dataset_name)
+        dataset = Student(filename = dataset_name)
         num_classes = 3
 
     # 划分目标和影子数据集
