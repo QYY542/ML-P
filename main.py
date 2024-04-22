@@ -22,19 +22,19 @@ def test_QID(dataset_name):
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
-        dataset = Student(filename = dataset_name, qid_indices=qid_indices)
+        dataset = Student(filename = dataset_name, qid_indices=qid_indices, DP=False)
 
     elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
-        dataset = Obesity(filename = dataset_name, qid_indices=qid_indices)
+        dataset = Obesity(filename = dataset_name, qid_indices=qid_indices, DP=False)
 
     elif dataset_name == "adult" or dataset_name == "Protected_adult":
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
-        dataset = Adult(filename = dataset_name, qid_indices=qid_indices)
+        dataset = Adult(filename = dataset_name, qid_indices=qid_indices, DP=False)
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
