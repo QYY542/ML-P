@@ -14,11 +14,13 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Obesity(Dataset):
-    def __init__(self, filename, qid_indices=None) -> None:
+    def __init__(self, filename, qid_indices=None, DP=False) -> None:
         super().__init__()
         self.root = './dataloader/datasets/obesity/'
         self.filename = filename + '.csv'
         self.qid_indices = qid_indices
+        self.epsilon = 0.5
+        self.sensitivity = 1
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
@@ -48,6 +50,10 @@ class Obesity(Dataset):
         scaler = MinMaxScaler()
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
+        # 对qid_indices指定的敏感特征添加拉普拉斯噪声
+        if qid_indices is not None and DP:
+            df[:, qid_indices] = self.add_laplace_noise(df[:, qid_indices], self.epsilon, self.sensitivity)
+
         # 标签进行标签编码
         self.target_encoder = LabelEncoder()
         self.y = self.target_encoder.fit_transform(self.y)
@@ -55,7 +61,10 @@ class Obesity(Dataset):
         # 加载数据
         self.X = torch.tensor(df.values, dtype=torch.float)
         self.target = torch.tensor(self.y, dtype=torch.long)
-
+    def add_laplace_noise(data, epsilon, sensitivity):
+        # 添加拉普拉斯噪声以实现差分隐私。
+        noise = np.random.laplace(loc=0.0, scale=sensitivity / epsilon, size=data.shape)
+        return data + noise
     def __len__(self) -> int:
         return len(self.X)
 
