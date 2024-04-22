@@ -26,7 +26,8 @@ class Adult(Dataset):
         df['income'] = df['income'].apply(lambda x: 0 if x == '<=50K' else 1)
 
         # 选择一些常用的属性作为例子
-        categorical_columns = ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'native-country']
+        categorical_columns = ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex',
+                               'native-country']
         for column in categorical_columns:
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
@@ -51,10 +52,12 @@ class Adult(Dataset):
         # 加载数据
         self.X = torch.tensor(df, dtype=torch.float)
         self.target = torch.tensor(target, dtype=torch.long)
+
     def add_laplace_noise(self, data, epsilon, sensitivity):
         # 添加拉普拉斯噪声以实现差分隐私。
         noise = np.random.laplace(loc=0.0, scale=sensitivity / epsilon, size=data.shape)
         return data + noise
+
     def __len__(self) -> int:
         return len(self.X)
 

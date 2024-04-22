@@ -52,7 +52,7 @@ class Student(Dataset):
         self.X = torch.tensor(df.values, dtype=torch.float)
         self.target = torch.tensor(self.y, dtype=torch.long)
 
-    def add_laplace_noise(data, epsilon, sensitivity):
+    def add_laplace_noise(self, data, epsilon, sensitivity):
         # 添加拉普拉斯噪声以实现差分隐私。
         noise = np.random.laplace(loc=0.0, scale=sensitivity / epsilon, size=data.shape)
         return data + noise
