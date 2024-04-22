@@ -19,7 +19,7 @@ class Obesity(Dataset):
         self.root = './dataloader/datasets/obesity/'
         self.filename = filename + '.csv'
         self.qid_indices = qid_indices
-        self.epsilon = 0.5
+        self.epsilon = 1
         self.sensitivity = 1
 
         # 加载和预处理数据
