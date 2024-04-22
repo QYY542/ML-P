@@ -2,7 +2,7 @@ import pandas as pd
 from diffprivlib.tools import mean, std
 from diffprivlib.mechanisms import Laplace
 
-def apply_differential_privacy_adult(csv_path, output_path, epsilon=1.0):
+def apply_differential_privacy_adult(csv_path, output_path, epsilon=0.5):
     df = pd.read_csv(csv_path)
 
     numeric_columns = ['age', 'fnlwgt', 'education-num', 'capital-gain', 'capital-loss', 'hours-per-week']
@@ -15,7 +15,7 @@ def apply_differential_privacy_adult(csv_path, output_path, epsilon=1.0):
     df.to_csv(output_path, index=False)
     print(f"Protected adult dataset has been saved to {output_path}.")
 
-def apply_differential_privacy_obesity(csv_path, output_path, epsilon=1.0):
+def apply_differential_privacy_obesity(csv_path, output_path, epsilon=0.5):
     df = pd.read_csv(csv_path)
 
     numeric_columns = ['Age', 'Height', 'Weight']
@@ -28,7 +28,7 @@ def apply_differential_privacy_obesity(csv_path, output_path, epsilon=1.0):
     df.to_csv(output_path, index=False)
     print(f"Protected obesity dataset has been saved to {output_path}.")
 
-def apply_differential_privacy_student(csv_path, output_path, epsilon=1.0):
+def apply_differential_privacy_student(csv_path, output_path, epsilon=0.5):
     df = pd.read_csv(csv_path)
 
     numeric_columns = [
