@@ -20,7 +20,7 @@ class Obesity(Dataset):
         self.filename = filename + '.csv'
         self.qid_indices = qid_indices
         self.epsilon = 1
-        self.sensitivity = 1
+        self.sensitivity = 0.5
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
