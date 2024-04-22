@@ -418,67 +418,47 @@ def main():
 
     # 综合分析
     elif args.evaluate_type == 3:
-        # ====QID脆弱性分析==== #
-        print("开始QID脆弱性分析...")
+        # 输出开始信息
+        print("开始综合隐私风险分析...")
+
+        # QID脆弱性分析
         normalized_impacts = test_QID(dataset_name)
         mean_impact = sum(normalized_impacts) / len(normalized_impacts)
         std_impact = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
 
-        # ====HDBSCAN聚类分析==== #
-        print("开始HDBSCAN聚类分析...")
-        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
-        cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
-        mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
-        std_cluster_success_rate = (sum(
-            (x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
-            cluster_attack_success_rates)) ** 0.5
+        # HDBSCAN聚类分析
+        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(dataset_name, model_name,
+                                                                                              mode, args.train_target,
+                                                                                              args.train_shadow, device)
+        mean_cluster_success_rate = sum([test_acc_min, test_acc_max, test_acc_noise, test_acc_random]) / 4
+        std_cluster_success_rate = (sum((x - mean_cluster_success_rate) ** 2 for x in
+                                        [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]) / 4) ** 0.5
 
-        # ====MIA分析==== #
-        print("开始MIA分析...")
+        # MIA分析
         if args.train_target:
             train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
-
-        # 训练影子模型
         if args.train_shadow:
             train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
+        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
+                            target_model, shadow_model, mode, model_name, num_features)
 
-        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,target_model, shadow_model, mode, model_name, num_features)
-
-        result_path = TARGET_PATH + "_meminf_attack0.p"
-        # 打开并读取文件内容
-        with open(result_path, "rb") as f:
+        # 读取MIA分析结果
+        with open(TARGET_PATH + "_meminf_attack0.p", "rb") as f:
             final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
 
-        # 找到预测标签与真实标签一致的样本的索引
-        correct_predictions_indices = [i for i, (predict, real) in
-                                       enumerate(zip(final_train_predict, final_train_gndtrth)) if predict == real]
+        # 计算样本隐私风险评分 (SPRS)
+        sprs_scores = [(idx, (prob + (1 / (dist + 1e-6))) * np.log(1 + std_impact)) for idx, (prob, dist) in
+                       enumerate(zip(final_train_probabe, distances))]
+        top_10_sprs_scores = sorted(sprs_scores, key=lambda x: x[1], reverse=True)[:10]
 
-        # 提取预测正确的样本的预测概率
-        correct_probabilities = [final_train_probabe[i] for i in correct_predictions_indices]
+        # 计算数据集的综合隐私评分 (OPRS)
+        oprs_score = test_acc * (1 + std_impact) * (1 + std_cluster_success_rate)
 
-        # 根据预测概率排序，找到预测概率最高的前10个样本的索引（在预测正确的子集中）
-        top_10_highest_prob_indices = sorted(range(len(correct_probabilities)), key=lambda i: correct_probabilities[i],
-                                             reverse=True)[:10]
-
-        # 从原始的样本集中获取这10个样本的详细信息
-        top_10_highest_prob_samples = [(correct_predictions_indices[i],
-                                        final_train_gndtrth[correct_predictions_indices[i]],
-                                        final_train_predict[correct_predictions_indices[i]],
-                                        final_train_probabe[correct_predictions_indices[i]]) for i in
-                                       top_10_highest_prob_indices]
-
-        for i, (index, gndtrth, predict, probabe) in enumerate(top_10_highest_prob_samples, 1):
-            print(f"样本 {i}: 索引 {index}, 真实标签 {gndtrth}, 预测标签 {predict}, 预测概率 {probabe}")
-
-        # 总结
-        print("test_acc_min, test_acc_max, test_acc_noise, test_acc_random", test_acc_min, test_acc_max, test_acc_noise, test_acc_random)
-        print(f"聚类总风险的标准差: {std_cluster_success_rate}")
-        print(f"QID总风险的标准差: {std_impact}")
-        print(f"MIA攻击准确率为: {test_acc}")
-
-        comprehensive_privacy_risk_score = test_acc * (1 + std_impact) * (1 + std_cluster_success_rate)
-        print(f"数据集的综合隐私评分为: {comprehensive_privacy_risk_score}")
-
+        # 输出结果
+        print(f"数据集的综合隐私评分 (OPRS) 为: {oprs_score:.4f}")
+        print("样本隐私风险评分 (SPRS) 最高的10个样本:")
+        for rank, (idx, score) in enumerate(top_10_sprs_scores, 1):
+            print(f"样本 {rank}: 索引 {idx}, SPRS评分: {score:.4f}")
 
 
 def fix_seed(num):
