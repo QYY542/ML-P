@@ -46,8 +46,8 @@ class Adult(Dataset):
 
         # 对qid_indices指定的敏感特征添加拉普拉斯噪声
         if qid_indices is not None and DP:
-            X_scaled[:, qid_indices] = self.add_laplace_noise(X_scaled[:, qid_indices], self.epsilon, self.sensitivity)
-
+            X_scaled.iloc[:, qid_indices] = self.add_laplace_noise(X_scaled.iloc[:, qid_indices].values, self.epsilon,
+                                                             self.sensitivity)
         # 加载数据
         self.X = torch.tensor(X_scaled, dtype=torch.float)
         self.target = torch.tensor(target, dtype=torch.long)
