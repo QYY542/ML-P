@@ -51,9 +51,9 @@ class Obesity(Dataset):
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
         # 对qid_indices指定的敏感特征添加拉普拉斯噪声
-        if qid_indices is not None and DP:
-            df.iloc[:, qid_indices] = self.add_laplace_noise(df.iloc[:, qid_indices].values, self.epsilon,
-                                                             self.sensitivity)
+        if DP:
+            df = df.apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
+
         # 标签进行标签编码
         self.target_encoder = LabelEncoder()
         self.y = self.target_encoder.fit_transform(self.y)

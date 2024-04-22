@@ -42,16 +42,16 @@ class Adult(Dataset):
 
         # 对数值特征进行标准化
         scaler = MinMaxScaler()
-        X_scaled = scaler.fit_transform(X)
+        df = scaler.fit_transform(X)
 
         # 对qid_indices指定的敏感特征添加拉普拉斯噪声
-        if qid_indices is not None and DP:
-            X_scaled.iloc[:, qid_indices] = self.add_laplace_noise(X_scaled.iloc[:, qid_indices].values, self.epsilon,
-                                                             self.sensitivity)
+        if DP:
+            df = df.apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
+
         # 加载数据
-        self.X = torch.tensor(X_scaled, dtype=torch.float)
+        self.X = torch.tensor(df, dtype=torch.float)
         self.target = torch.tensor(target, dtype=torch.long)
-    def add_laplace_noise(data, epsilon, sensitivity):
+    def add_laplace_noise(self, data, epsilon, sensitivity):
         # 添加拉普拉斯噪声以实现差分隐私。
         noise = np.random.laplace(loc=0.0, scale=sensitivity / epsilon, size=data.shape)
         return data + noise
