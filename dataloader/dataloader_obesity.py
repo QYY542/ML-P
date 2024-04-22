@@ -47,7 +47,7 @@ class Obesity(Dataset):
 
         if DP_indices is not None:
             # 确保DP_indices是整数列表
-            dp_columns = df.columns[self.DP_indices]
+            dp_columns = df.columns[DP_indices]
             df[dp_columns] = df[dp_columns].apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
 
         if qid_indices is not None:
