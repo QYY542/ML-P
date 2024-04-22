@@ -16,7 +16,7 @@ class Adult(Dataset):
     def __init__(self, filename, qid_indices=None) -> None:
         super().__init__()
         self.root = './dataloader/datasets/adult/'
-        self.filename = filename
+        self.filename = filename + '.csv'
         self.qid_indices = qid_indices
 
         # 加载和预处理数据

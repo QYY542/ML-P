@@ -18,19 +18,19 @@ import matplotlib.pyplot as plt
 import csv
 
 def test_QID(dataset_name):
-    if dataset_name == "student.csv" or dataset_name == "Protected_student.csv":
+    if dataset_name == "student" or dataset_name == "Protected_student":
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
         dataset = Student(dataset_name = dataset_name, qid_indices=qid_indices)
 
-    elif dataset_name == "obesity.csv" or dataset_name == "Protected_obesity.csv":
+    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
         dataset = Obesity(dataset_name = dataset_name, qid_indices=qid_indices)
 
-    elif dataset_name == "adult.csv" or dataset_name == "Protected_adult.csv":
+    elif dataset_name == "adult" or dataset_name == "Protected_adult":
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
@@ -58,15 +58,15 @@ def test_QID(dataset_name):
 
 def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, device):
     # 数据集
-    if dataset_name == "adult.csv" or dataset_name == "Protected_adult.csv":
+    if dataset_name == "adult" or dataset_name == "Protected_adult":
         print("Adult")
         dataset = Adult(dataset_name = dataset_name)
         num_classes = 2
-    elif dataset_name == "obesity.csv" or dataset_name == "Protected_obesity.csv":
+    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         print("Obesity")
         dataset = Obesity(dataset_name = dataset_name)
         num_classes = 7
-    elif dataset_name == "student.csv" or dataset_name == "Protected_student.csv":
+    elif dataset_name == "student" or dataset_name == "Protected_student":
         print("Student")
         dataset = Student(dataset_name = dataset_name)
         num_classes = 3
@@ -313,15 +313,15 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
 
 def prepare_dataset(dataset_name, model_name):
     # 数据集
-    if dataset_name == "adult.csv" or dataset_name == "Protected_adult.csv":
+    if dataset_name == "adult" or dataset_name == "Protected_adult":
         print("Adult")
         dataset = Adult(dataset_name = dataset_name)
         num_classes = 2
-    elif dataset_name == "obesity.csv" or dataset_name == "Protected_obesity.csv":
+    elif dataset_name == "obesity" or dataset_name == "Protected_obesity":
         print("Obesity")
         dataset = Obesity(dataset_name = dataset_name)
         num_classes = 7
-    elif dataset_name == "student.csv" or dataset_name == "Protected_student.csv":
+    elif dataset_name == "student" or dataset_name == "Protected_student":
         print("Student")
         dataset = Student(dataset_name = dataset_name)
         num_classes = 3
