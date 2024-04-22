@@ -62,6 +62,8 @@ def test_QID(dataset_name):
     for index, normalized_impact in zip(range(len(qid_indices)), normalized_impacts):
         print(f"Normalized Impact for QID at {qid_indices_names[index]}: {normalized_impact}")
 
+    print("RF预测成功率:", evaluator.evaluate_model())
+
     return normalized_impacts
 
 

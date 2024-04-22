@@ -64,3 +64,19 @@ class QID_VE:
         # 返回平均影响值
         return np.mean(permutation_scores)
 
+    def evaluate_model(self):
+        # 获取测试数据
+        X_test, y_test = self.get_test_data()
+
+        # 获取训练好的模型
+        train_loader = DataLoader(self.train_dataset, batch_size=len(self.train_dataset), shuffle=False)
+        X_train, y_train = next(iter(train_loader))
+        X_train = X_train.numpy()
+        y_train = y_train.numpy()
+        model = self.train_model(X_train, y_train)
+
+        # 计算准确率
+        predictions = model.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
+        return accuracy
+
