@@ -55,7 +55,7 @@ class Adult(Dataset):
         self.y = self.target_encoder.fit_transform(self.y)
 
         # 加载数据
-        self.X = torch.tensor(df, dtype=torch.float)
+        self.X = torch.tensor(df.values, dtype=torch.float)
         self.target = torch.tensor(self.y, dtype=torch.long)
 
     def add_laplace_noise(self, data, epsilon, sensitivity):
