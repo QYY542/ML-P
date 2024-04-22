@@ -32,8 +32,8 @@ class Adult(Dataset):
             df[column] = lbl.fit_transform(df[column])
 
         # 分离特征和标签
-        df = df.drop('income', axis=1)
         self.y = df['income']
+        df = df.drop('income', axis=1)
 
         # 对数值特征进行标准化
         numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
