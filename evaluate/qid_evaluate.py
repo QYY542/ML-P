@@ -27,7 +27,7 @@ class QID_VE:
         self.train_dataset = Subset(self.dataset, train_indices)
         self.test_dataset = Subset(self.dataset, test_indices)
 
-    def train_model(self, X, y, n_estimators=200):
+    def train_model(self, X, y, n_estimators=100):
         # 训练随机森林模型
         model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
         model.fit(X, y)

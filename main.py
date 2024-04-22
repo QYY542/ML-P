@@ -18,27 +18,27 @@ import csv
 
 def test_QID(dataset_name):
     if dataset_name == "student" or dataset_name == "protected_student":
-        DP = False
+        DP = None
         if dataset_name == "protected_student":
-            DP = True
+            DP = [0, 7, 17, 19]
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
         dataset = Student(filename = dataset_name, qid_indices=qid_indices, DP=DP)
 
     elif dataset_name == "obesity" or dataset_name == "protected_obesity":
-        DP = False
+        DP = None
         if dataset_name == "protected_obesity":
-            DP = True
+            DP = [0, 1, 2, 3]
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
         dataset = Obesity(filename = dataset_name, qid_indices=qid_indices, DP=DP)
 
     elif dataset_name == "adult" or dataset_name == "protected_adult":
-        DP = False
+        DP = None
         if dataset_name == "protected_adult":
-            DP = True
+            DP = [0, 8, 9, 13]
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
