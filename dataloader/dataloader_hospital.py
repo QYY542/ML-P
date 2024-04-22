@@ -11,10 +11,10 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder, M
 
 
 class Hospital(Dataset):
-    def __init__(self, root='./dataloader/datasets/hospital/', qid_indices=None) -> None:
+    def __init__(self, filename, qid_indices=None) -> None:
         super().__init__()
-        self.root = root
-        self.filename = 'hospital.csv'
+        self.root = './dataloader/datasets/hospital/'
+        self.filename = filename
         self.qid_indices = qid_indices
 
         # 加载数据

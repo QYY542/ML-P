@@ -14,10 +14,10 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Student(Dataset):
-    def __init__(self, root='./dataloader/datasets/student/', qid_indices=None) -> None:
+    def __init__(self, filename, qid_indices=None) -> None:
         super().__init__()
-        self.root = root
-        self.filename = 'student.csv'
+        self.root = './dataloader/datasets/student/'
+        self.filename = filename
         self.qid_indices = qid_indices
 
         # 加载和预处理数据
