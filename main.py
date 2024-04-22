@@ -413,72 +413,73 @@ def main():
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
 
-    # 综合分析
+    # 综合分析代码块
     elif args.evaluate_type == 3:
-        # 综合分析
+        # 输出开始信息
         print("开始综合隐私风险分析...")
 
         # ====QID脆弱性分析==== #
-        normalized_impacts = test_QID('dataset_name')
+        normalized_impacts = test_QID(dataset_name)
         mean_impact = sum(normalized_impacts) / len(normalized_impacts)
-        std_QID = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
+        std_QID = np.sqrt(sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts))
 
         # ====HDBSCAN聚类分析==== #
-        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan('dataset_name',
-                                                                                              model_name,
-                                                                                              'mode', 'train_target',
-                                                                                              'train_shadow', device)
+        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(
+            dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
         cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
         mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
-        std_HDBSCAN = (sum((x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
-            cluster_attack_success_rates)) ** 0.5
+        std_HDBSCAN = np.sqrt(sum((x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
+            cluster_attack_success_rates))
 
         # ====MIA分析==== #
-        test_acc = test_mia(TARGET_PATH, device, num_classes, 'target_train', 'target_test', 'shadow_train',
-                            'shadow_test',
-                            'target_model', 'shadow_model', 'mode', model_name, num_features)
+        if args.train_target:
+            train_target_model(TARGET_PATH, device, target_train, target_test, target_model, model_name, num_features)
+        if args.train_shadow:
+            train_shadow_model(TARGET_PATH, device, shadow_train, shadow_test, shadow_model, model_name, num_features)
+        test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
+                            target_model, shadow_model, mode, model_name, num_features)
 
-        # 模拟MIA分析结果
-        final_train_probabe = np.random.random(1000)
+        # 读取MIA分析结果
+        with open(TARGET_PATH + "_meminf_attack0.p", "rb") as f:
+            _, _, final_train_probabe = pickle.load(f)
 
         # 计算样本隐私风险评分 (SPRS) 并归一化
-        sprs_scores = [(idx, (prob * (1 / (dist + 1e-6) + np.log(1 + std_QID)))) for idx, (prob, dist) in
+        sprs_scores = [(idx, (prob * (1 / (dist + 1e-6) + np.log(1 + std_QID) * 0.5))) for idx, (prob, dist) in
                        enumerate(zip(final_train_probabe, distances))]
         max_sprs = max(score for _, score in sprs_scores)
         min_sprs = min(score for _, score in sprs_scores)
         normalized_sprs_scores = [(idx, 10 * (score - min_sprs) / (max_sprs - min_sprs)) for idx, score in sprs_scores]
 
-        # 定义高风险样本集
-        high_risk_samples_mia = {idx for idx, score in
-                                 sorted(sprs_scores, key=lambda x: x[1], reverse=True)[:int(len(sprs_scores) * 0.1)]}
-        adjusted_scores = [(idx, (1 / (dist + 1e-6) + np.log(1 + std_QID)) * 0.5) for idx, dist in enumerate(distances)]
-        high_risk_samples_adjusted = {idx for idx, score in sorted(adjusted_scores, key=lambda x: x[1], reverse=True)[
-                                                            :int(len(adjusted_scores) * 0.1)]}
+        # 保存归一化后的SPRS评分到CSV文件
+        with open(TARGET_PATH + 'normalized_sprs_scores.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Sample Index', 'Normalized SPRS'])
+            writer.writerows(normalized_sprs_scores)
 
-        # 计算两种高风险样本集的交集
-        high_risk_intersection = high_risk_samples_mia & high_risk_samples_adjusted
-        overlap_percentage = len(high_risk_intersection) / (
-                    len(high_risk_samples_mia) * 0.5 + len(high_risk_samples_adjusted) * 0.5)
+        # 选择高风险样本
+        high_risk_mia = sorted(sprs_scores, key=lambda x: x[1], reverse=True)[:int(len(sprs_scores) * 0.05)]
+        high_risk_hdb_qid = sorted([(idx, ((1 / (dist + 1e-6) + np.log(1 + std_QID)) * 0.5)) for idx, (prob, dist) in
+                                    enumerate(zip(final_train_probabe, distances))], key=lambda x: x[1], reverse=True)[
+                            :int(len(sprs_scores) * 0.05)]
+
+        # 计算重合度
+        high_risk_mia_set = set([idx for idx, _ in high_risk_mia])
+        high_risk_hdb_qid_set = set([idx for idx, _ in high_risk_hdb_qid])
+        intersection = high_risk_mia_set.intersection(high_risk_hdb_qid_set)
+        overlap_percentage = len(intersection) / (len(high_risk_mia_set) * 0.01)  # Percentage of overlap
 
         # 输出重合度结果
-        print(f"重合度为: {overlap_percentage:.2%}")
+        print(f"高风险样本的重合度为：{overlap_percentage:.2f}%")
 
         # 绘制所有样本的隐私风险评分
         indices, scores = zip(*normalized_sprs_scores)
         plt.figure(figsize=(10, 6))
-        plt.scatter(indices, scores, color='blue', alpha=0.5, label='All Samples')
-        plt.scatter(list(high_risk_samples_mia), [scores[idx] for idx in high_risk_samples_mia], color='red', alpha=0.7,
-                    label='High Risk MIA')
-        plt.scatter(list(high_risk_samples_adjusted), [scores[idx] for idx in high_risk_samples_adjusted],
-                    color='green', alpha=0.5, label='High Risk Adjusted')
-        plt.scatter(list(high_risk_intersection), [scores[idx] for idx in high_risk_intersection], color='yellow',
-                    marker='x', label='Intersection')
-        plt.title('All Samples Privacy Risk Scores with High Risk Overlaps')
+        plt.scatter(indices, scores, color='blue', alpha=0.5)
+        plt.title('All Samples Privacy Risk Scores')
         plt.xlabel('Sample Index')
         plt.ylabel('Normalized SPRS')
-        plt.legend()
         plt.grid(True)
-        plt.savefig(TARGET_PATH + "All_Samples_Privacy_Risk_Scores_Overlap.png")
+        plt.savefig(TARGET_PATH + "All_Samples_Privacy_Risk_Scores.png")
         plt.show()
 
 def fix_seed(num):
