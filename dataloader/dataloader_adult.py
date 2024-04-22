@@ -25,7 +25,6 @@ class Adult(Dataset):
         df = pd.read_csv(os.path.join(self.root, self.filename))
         df['income'] = df['income'].apply(lambda x: 0 if x == '<=50K' else 1)
 
-        # 选择一些常用的属性作为例子
         categorical_columns = ['workclass', 'education', 'marital-status', 'occupation', 'relationship', 'race', 'sex',
                                'native-country']
         for column in categorical_columns:
@@ -33,12 +32,13 @@ class Adult(Dataset):
             df[column] = lbl.fit_transform(df[column])
 
         # 分离特征和标签
-        X = df.drop('income', axis=1).values
-        target = df['income'].values
+        df = df.drop('income', axis=1)
+        self.y = df['income']
 
         # 对数值特征进行标准化
+        numeric_features = df.columns  # 由于所有的特征都是数值型，我们可以直接使用所有列
         scaler = MinMaxScaler()
-        df = scaler.fit_transform(X)
+        df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
         if DP_indices is not None:
             # 确保DP_indices是整数列表
@@ -50,9 +50,13 @@ class Adult(Dataset):
             columns_to_keep = df.columns[qid_indices].tolist()
             df = df[columns_to_keep]
 
+        # 标签进行标签编码
+        self.target_encoder = LabelEncoder()
+        self.y = self.target_encoder.fit_transform(self.y)
+
         # 加载数据
         self.X = torch.tensor(df, dtype=torch.float)
-        self.target = torch.tensor(target, dtype=torch.long)
+        self.target = torch.tensor(self.y, dtype=torch.long)
 
     def add_laplace_noise(self, data, epsilon, sensitivity):
         # 添加拉普拉斯噪声以实现差分隐私。
