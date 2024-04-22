@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 
 class Student(Dataset):
-    def __init__(self, filename, qid_indices=None, DP=False) -> None:
+    def __init__(self, filename, qid_indices=None, DP_indices=None) -> None:
         super().__init__()
         self.root = './dataloader/datasets/student/'
         self.filename = filename + '.csv'
@@ -24,11 +24,6 @@ class Student(Dataset):
 
         # 加载和预处理数据
         df = pd.read_csv(os.path.join(self.root, self.filename))
-
-        if qid_indices is not None:
-            # 保留qid_indices指定的列以及Target列
-            columns_to_keep = df.columns[qid_indices].tolist() + ['Target']
-            df = df[columns_to_keep]
 
         # 分离特征和标签
         self.y = df['Target']
@@ -40,13 +35,19 @@ class Student(Dataset):
         scaler = MinMaxScaler()
         df[numeric_features] = scaler.fit_transform(df[numeric_features])
 
+        if DP_indices is not None:
+            # 确保DP_indices是整数列表
+            dp_columns = df.columns[self.DP_indices]
+            df[dp_columns] = df[dp_columns].apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
+
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['Target']
+            df = df[columns_to_keep]
+
         # 标签进行编码
         self.target_encoder = LabelEncoder()
         self.y = self.target_encoder.fit_transform(self.y)
-
-        # 对qid_indices指定的敏感特征添加拉普拉斯噪声
-        if DP:
-            df = df.apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
 
         # 加载数据
         self.X = torch.tensor(df.values, dtype=torch.float)

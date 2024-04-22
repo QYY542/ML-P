@@ -52,8 +52,8 @@ def apply_differential_privacy_student(csv_path, output_path, epsilon=1.0):
 
 if __name__ == '__main__':
     apply_differential_privacy_adult("./dataloader/datasets/adult/adult.csv",
-                                     "dataloader/datasets/adult/protected_adult.csv")
+                                     "./dataloader/datasets/adult/protected_adult.csv")
     apply_differential_privacy_obesity("./dataloader/datasets/obesity/obesity.csv",
-                                       "dataloader/datasets/obesity/protected_obesity.csv")
+                                       "./dataloader/datasets/obesity/protected_obesity.csv")
     apply_differential_privacy_student("./dataloader/datasets/student/student.csv",
-                                       "dataloader/datasets/student/protected_student.csv")
+                                       "./dataloader/datasets/student/protected_student.csv")

@@ -13,7 +13,7 @@ from models.define_models import MLP
 
 
 class Adult(Dataset):
-    def __init__(self, filename, qid_indices=None, DP=False) -> None:
+    def __init__(self, filename, qid_indices=None, DP_indices=None) -> None:
         super().__init__()
         self.root = './dataloader/datasets/adult/'
         self.filename = filename + '.csv'
@@ -32,11 +32,6 @@ class Adult(Dataset):
             lbl = LabelEncoder()
             df[column] = lbl.fit_transform(df[column])
 
-        if qid_indices is not None:
-            # 保留qid_indices指定的列以及Target列
-            columns_to_keep = df.columns[qid_indices].tolist() + ['income']
-            df = df[columns_to_keep]
-
         # 分离特征和标签
         X = df.drop('income', axis=1).values
         target = df['income'].values
@@ -45,9 +40,15 @@ class Adult(Dataset):
         scaler = MinMaxScaler()
         df = scaler.fit_transform(X)
 
-        # 对qid_indices指定的敏感特征添加拉普拉斯噪声
-        if DP:
-            df = df.apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
+        if DP_indices is not None:
+            # 确保DP_indices是整数列表
+            dp_columns = df.columns[self.DP_indices]
+            df[dp_columns] = df[dp_columns].apply(lambda x: self.add_laplace_noise(x.values, self.epsilon, self.sensitivity))
+
+        if qid_indices is not None:
+            # 保留qid_indices指定的列以及Target列
+            columns_to_keep = df.columns[qid_indices].tolist() + ['Target']
+            df = df[columns_to_keep]
 
         # 加载数据
         self.X = torch.tensor(df, dtype=torch.float)
