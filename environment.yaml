@@ -1,4 +1,4 @@
-name: mldoctor
+name: mlprivacy
 channels:
   - pytorch
   - defaults
@@ -14,3 +14,4 @@ dependencies:
     - torch
     - scipy
     - pandas
+    - hdbscan
