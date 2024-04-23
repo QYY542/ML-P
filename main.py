@@ -24,7 +24,7 @@ def test_QID(dataset_name):
         # 婚姻情况（Marital status）、性别（Gender）、入学年龄（Age at enrollment）、国籍（Nationality）
         qid_indices_names = ["Marital status", "Nationality", "Gender", "Age at enrollment"]
         qid_indices = [0, 7, 17, 19]
-        dataset = Student(filename = dataset_name, qid_indices=qid_indices, DP_indices=DP)
+        dataset = Student(filename = "student", qid_indices=qid_indices, DP_indices=DP)
 
     elif dataset_name == "obesity" or dataset_name == "protected_obesity":
         DP = None
@@ -33,7 +33,7 @@ def test_QID(dataset_name):
         # 性别（Gender）、年龄（Age）、身高（Height）和体重（Weight）
         qid_indices_names = ["Gender", "Age", "Height", "Weight"]
         qid_indices = [0, 1, 2, 3]
-        dataset = Obesity(filename = dataset_name, qid_indices=qid_indices, DP_indices=DP)
+        dataset = Obesity(filename = "obesity", qid_indices=qid_indices, DP_indices=DP)
 
     elif dataset_name == "adult" or dataset_name == "protected_adult":
         DP = None
@@ -42,7 +42,7 @@ def test_QID(dataset_name):
         # 年龄（Age）、人种（Race）、性别（Gender）、国家（Native-country）
         qid_indices_names = ["Age", "Race", "Gender", "Native-country"]
         qid_indices = [0, 8, 9, 13]
-        dataset = Adult(filename = dataset_name, qid_indices=qid_indices, DP_indices=DP)
+        dataset = Adult(filename = "adult", qid_indices=qid_indices, DP_indices=DP)
 
     evaluator = QID_VE(dataset)
     evaluator.train_test_split()
@@ -413,7 +413,7 @@ def main():
     elif args.evaluate_type == 2:
         test_QID(dataset_name)
 
-    # 综合分析代码块
+    # 综合分析
     elif args.evaluate_type == 3:
         # 输出开始信息
         print("开始综合隐私风险分析...")
@@ -421,15 +421,18 @@ def main():
         # ====QID脆弱性分析==== #
         normalized_impacts = test_QID(dataset_name)
         mean_impact = sum(normalized_impacts) / len(normalized_impacts)
-        std_QID = np.sqrt(sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts))
+        std_QID = (sum((x - mean_impact) ** 2 for x in normalized_impacts) / len(normalized_impacts)) ** 0.5
+        cv_QID = std_QID / mean_impact if mean_impact != 0 else 0  # 计算QID的变异系数
 
         # ====HDBSCAN聚类分析==== #
-        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(
-            dataset_name, model_name, mode, args.train_target, args.train_shadow, device)
+        test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances = test_hdbscan(dataset_name, model_name,
+                                                                                              mode, args.train_target,
+                                                                                              args.train_shadow, device)
         cluster_attack_success_rates = [test_acc_min, test_acc_max, test_acc_noise, test_acc_random]
         mean_cluster_success_rate = sum(cluster_attack_success_rates) / len(cluster_attack_success_rates)
-        std_HDBSCAN = np.sqrt(sum((x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
-            cluster_attack_success_rates))
+        std_HDBSCAN = (sum((x - mean_cluster_success_rate) ** 2 for x in cluster_attack_success_rates) / len(
+            cluster_attack_success_rates)) ** 0.5
+        cv_HDBSCAN = std_HDBSCAN / mean_cluster_success_rate if mean_cluster_success_rate != 0 else 0  # 计算HDBSCAN的变异系数
 
         # ====MIA分析==== #
         if args.train_target:
@@ -439,48 +442,12 @@ def main():
         test_acc = test_mia(TARGET_PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test,
                             target_model, shadow_model, mode, model_name, num_features)
 
-        # 读取MIA分析结果
-        with open(TARGET_PATH + "_meminf_attack0.p", "rb") as f:
-            _, _, final_train_probabe = pickle.load(f)
+        # 使用变异系数重新计算OPRS
+        oprs_score = test_acc * (1 + cv_QID ) * (1 + cv_HDBSCAN)
 
-        # 计算样本隐私风险评分 (SPRS) 并归一化
-        sprs_scores = [(idx, (prob * (1 / (dist + 1e-6) + np.log(1 + std_QID) * 0.5))) for idx, (prob, dist) in
-                       enumerate(zip(final_train_probabe, distances))]
-        max_sprs = max(score for _, score in sprs_scores)
-        min_sprs = min(score for _, score in sprs_scores)
-        normalized_sprs_scores = [(idx, 10 * (score - min_sprs) / (max_sprs - min_sprs)) for idx, score in sprs_scores]
+        # 输出结果
+        print(f"数据集的综合隐私评分 (OPRS) 为: {oprs_score:.4f}")
 
-        # 保存归一化后的SPRS评分到CSV文件
-        with open(TARGET_PATH + 'normalized_sprs_scores.csv', 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['Sample Index', 'Normalized SPRS'])
-            writer.writerows(normalized_sprs_scores)
-
-        # 选择高风险样本
-        high_risk_mia = sorted(sprs_scores, key=lambda x: x[1], reverse=True)[:int(len(sprs_scores) * 0.05)]
-        high_risk_hdb_qid = sorted([(idx, ((1 / (dist + 1e-6) + np.log(1 + std_QID)) * 0.5)) for idx, (prob, dist) in
-                                    enumerate(zip(final_train_probabe, distances))], key=lambda x: x[1], reverse=True)[
-                            :int(len(sprs_scores) * 0.05)]
-
-        # 计算重合度
-        high_risk_mia_set = set([idx for idx, _ in high_risk_mia])
-        high_risk_hdb_qid_set = set([idx for idx, _ in high_risk_hdb_qid])
-        intersection = high_risk_mia_set.intersection(high_risk_hdb_qid_set)
-        overlap_percentage = len(intersection) / (len(high_risk_mia_set) * 0.01)  # Percentage of overlap
-
-        # 输出重合度结果
-        print(f"高风险样本的重合度为：{overlap_percentage:.2f}%")
-
-        # 绘制所有样本的隐私风险评分
-        indices, scores = zip(*normalized_sprs_scores)
-        plt.figure(figsize=(10, 6))
-        plt.scatter(indices, scores, color='blue', alpha=0.5)
-        plt.title('All Samples Privacy Risk Scores')
-        plt.xlabel('Sample Index')
-        plt.ylabel('Normalized SPRS')
-        plt.grid(True)
-        plt.savefig(TARGET_PATH + "All_Samples_Privacy_Risk_Scores.png")
-        plt.show()
 
 def fix_seed(num):
     # Set the random seed for NumPy
