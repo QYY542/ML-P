@@ -12,8 +12,8 @@ from torch.optim import lr_scheduler
 from sklearn.metrics import f1_score, roc_auc_score
 
 def get_attack_dataset_without_shadow(train_set, test_set, batch_size):
-    mem_length = len(train_set) // 3
-    nonmem_length = len(test_set) // 3
+    mem_length = len(train_set)*2 // 3
+    nonmem_length = len(test_set)*2 // 3
     mem_train, mem_test, _ = torch.utils.data.random_split(train_set,
                                                            [mem_length, mem_length, len(train_set) - (mem_length * 2)])
     nonmem_train, nonmem_test, _ = torch.utils.data.random_split(test_set, [nonmem_length, nonmem_length,

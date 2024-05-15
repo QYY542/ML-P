@@ -164,6 +164,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     test_max_set_path = ''
     test_noise_set_path = ''
     test_random_set_path = ''
+    mode = 0
     if mode == 0:
         attack_model_path = TARGET_PATH + '_random' + '_meminf_attack0.pth'
         test_min_set_path = TARGET_PATH + '_min' + '_meminf_attack_mode0_test.p'
@@ -256,7 +257,6 @@ def draw(result_path,dataset_name, model_name):
     ax.legend()
     plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
 
-
 def draw_tpr(result_path, dataset_name, model_name):
     result_paths = [
         result_path + "_min.p",
@@ -292,6 +292,7 @@ def draw_tpr(result_path, dataset_name, model_name):
 
     # 保存并显示图表
     plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_roc_curve_log_scale.png")
+
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):
     batch_size = 64
