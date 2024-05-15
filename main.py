@@ -12,7 +12,6 @@ from dataloader.dataloader_student import Student
 from evaluate.qid_evaluate import QID_VE
 from models.train_models import *
 from models.define_models import *
-from dataloader.dataloader import *
 import matplotlib.pyplot as plt
 import csv
 
@@ -188,110 +187,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     print("========RANDOM_dataset========")
     test_acc_random = evaluate_attack_model(attack_model_path, test_random_set_path, result_path + "_random.p", num_classes)
 
-    # draw(result_path,dataset_name, model_name)
-    # draw_tpr(result_path,dataset_name, model_name)
-
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
-
-
-def draw(result_path,dataset_name, model_name):
-    result_paths = [
-        result_path + "_min.p",
-        result_path + "_max.p",
-        result_path + "_noise.p",
-        result_path + "_random.p"
-    ]
-    datasets = ["MIN", "MAX", "NOISE", "RANDOM"]
-    correct_probabilities = []
-    incorrect_probabilities = []
-    means_correct = []
-    means_incorrect = []
-
-    for path in result_paths:
-        with open(path, "rb") as f:
-            final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
-
-        # 筛选出预测正确的样本的预测概率
-        correct_probs = [prob for prob, predict, real in
-                         zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict == real and real == 1]
-        correct_probabilities.append(correct_probs)
-        means_correct.append(np.mean(correct_probs))
-
-        # 筛选出预测错误的样本的预测概率
-        incorrect_probs = [prob for prob, predict, real in
-                           zip(final_train_probabe, final_train_predict, final_train_gndtrth) if predict != real]
-        incorrect_probabilities.append(incorrect_probs)
-        means_incorrect.append(np.mean(incorrect_probs) if incorrect_probs else 0)
-
-    # 绘制预测概率的分布图
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    # 为每个数据集绘制预测正确的样本的预测概率分布
-    parts_correct = ax.violinplot(correct_probabilities, positions=np.arange(1, len(datasets) * 2, 2) - 0.15,
-                                  showmeans=False, showmedians=False, showextrema=False)
-    for pc in parts_correct['bodies']:
-        pc.set_facecolor('#DDA0DD')
-        pc.set_edgecolor('black')
-        pc.set_alpha(1)
-
-    # 为每个数据集绘制预测错误的样本的预测概率分布
-    parts_incorrect = ax.violinplot(incorrect_probabilities, positions=np.arange(1, len(datasets) * 2, 2) + 0.15,
-                                    showmeans=False, showmedians=False, showextrema=False)
-    for pc in parts_incorrect['bodies']:
-        pc.set_facecolor('#1E90FF')
-        pc.set_edgecolor('black')
-        pc.set_alpha(1)
-
-    # 标出平均值
-    ax.scatter(np.arange(1, len(datasets) * 2, 2) - 0.15, means_correct, marker='o', color='red', s=30, zorder=3,
-               label='Mean Probability (Correct)')
-    ax.scatter(np.arange(1, len(datasets) * 2, 2) + 0.15, means_incorrect, marker='o', color='blue', s=30, zorder=3,
-               label='Mean Probability (Incorrect)')
-
-    # 添加一些图形属性来增加可读性
-    ax.set_title('Predicted Probability Distribution Across Datasets')
-    ax.set_xlabel('Dataset')
-    ax.set_ylabel('Predicted Probability')
-    ax.set_xticks(np.arange(1, len(datasets) * 2, 2))
-    ax.set_xticklabels(datasets)
-    ax.legend()
-    plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_predicted_probability_distribution.png")
-
-def draw_tpr(result_path, dataset_name, model_name):
-    result_paths = [
-        result_path + "_min.p",
-        result_path + "_max.p",
-        result_path + "_noise.p",
-        result_path + "_random.p"
-    ]
-    datasets = ["MIN", "MAX", "NOISE", "RANDOM"]
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    for i, path in enumerate(result_paths):
-        with open(path, "rb") as f:
-            final_train_gndtrth, final_train_predict, final_train_probabe = pickle.load(f)
-
-        # 计算ROC曲线
-        fpr, tpr, thresholds = roc_curve(final_train_gndtrth, final_train_probabe)
-
-        # 绘制ROC曲线
-        ax.plot(fpr, tpr, label=f"{datasets[i]} (area = {np.trapz(tpr, fpr):.2f})", lw=2)
-
-    # 设置图表属性
-    ax.set_title('ROC Curve on Logarithmic Scale')
-    ax.set_xlabel('False Positive Rate (FPR)')
-    ax.set_ylabel('True Positive Rate (TPR)')
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_xlim([1e-2, 1e0])
-    ax.set_ylim([1e-2, 1e0])
-    ax.legend(loc='best')
-
-    # 添加网格
-    ax.grid(True, which="both", linestyle='--')
-
-    # 保存并显示图表
-    plt.savefig("./dataloader/" + dataset_name + "_" + model_name + "_roc_curve_log_scale.png")
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
              shadow_model, mode, model_name, num_features, kmeans_mode=""):

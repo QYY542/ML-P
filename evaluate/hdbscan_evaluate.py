@@ -95,6 +95,7 @@ class HDBSCANDataset:
         plt.ylabel('PCA Component 2')
         plt.grid(True)
         plt.show()
+
     def get_specific_datasets_and_distances(self, n):
         labels, X_scaled, probabilities = self.compute_hdbscan_clusters()
         distances = self.get_distances_and_probabilities(labels, X_scaled, probabilities)
@@ -146,6 +147,7 @@ class HDBSCANDataset:
         test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
         random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
 
+        # 画样本点图
         # self.visualize_clusters(X_scaled, labels, pca, label_color_map)
         # self.visualize_clusters(X_scaled[low_distance_indices], labels[low_distance_indices], pca, label_color_map)
         # self.visualize_clusters(X_scaled[high_distance_indices], labels[high_distance_indices], pca, label_color_map)
