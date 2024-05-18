@@ -1,5 +1,5 @@
 import argparse
-
+import math
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
 
@@ -340,7 +340,7 @@ def main():
                             target_model, shadow_model, mode, model_name, num_features)
 
         # 使用变异系数重新计算OPRS
-        oprs_score = test_acc * (1 + cv_QID ) * (1 + cv_HDBSCAN)
+        oprs_score = 2 * (1 / (1 + math.exp(-test_acc * (1 + cv_QID) * (1 + cv_HDBSCAN)))) - 1
 
         # 输出结果
         print(f"数据集的综合隐私评分 (OPRS) 为: {oprs_score:.4f}")
