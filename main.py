@@ -263,8 +263,8 @@ def prepare_dataset(dataset_name, model_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, default="0")
-    parser.add_argument('--model', type=str, default="Net_1")
-    parser.add_argument('--dataset', type=str, default="Student")
+    parser.add_argument('--model', type=str, default="MLP")
+    parser.add_argument('--dataset', type=str, default="student")
     parser.add_argument('--evaluate_type', type=int, default=0)
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
