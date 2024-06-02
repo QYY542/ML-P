@@ -190,7 +190,7 @@ def test_hdbscan(dataset_name, model_name, mode, train_target, train_shadow, dev
     return test_acc_min, test_acc_max, test_acc_noise, test_acc_random, distances
 
 def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train, shadow_test, target_model,
-             shadow_model, mode, model_name, num_features, kmeans_mode=""):
+             shadow_model, mode, model_name, num_features, hdbscan_mode=""):
     batch_size = 64
 
     # 获取攻击数据集
@@ -203,14 +203,14 @@ def test_mia(PATH, device, num_classes, target_train, target_test, shadow_train,
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        test_acc = attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+        test_acc = attack_mode0(PATH + hdbscan_mode + "_target.pth", PATH + "_shadow.pth", PATH + hdbscan_mode, device,
                      attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        test_acc = attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+        test_acc = attack_mode1(PATH + hdbscan_mode + "_target.pth", PATH + hdbscan_mode, device, attack_trainloader,
                      attack_testloader,
                      target_model,
                      attack_model, 1, model_name, num_features)
@@ -269,7 +269,7 @@ def main():
     parser.add_argument('--train_target', action='store_true')
     parser.add_argument('--train_shadow', action='store_true')
     parser.add_argument('--mode', type=int, default=0)
-    parser.add_argument('--kmeans', action='store_true')
+    parser.add_argument('--hdbscan', action='store_true')
     args = parser.parse_args()
 
     # 处理从命令行获得的参数

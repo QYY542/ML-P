@@ -8,7 +8,6 @@ import hdbscan
 import pickle
 import torch.nn.functional as F
 import numpy as np
-from sklearn.cluster import KMeans
 from sklearn.metrics import f1_score, roc_auc_score, roc_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
@@ -255,18 +254,18 @@ def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
 
 
 def test_hdbscan_mia(PATH, device, num_classes, attack_trainloader, attack_testloader, target_model,
-                     shadow_model, mode, model_name, num_features, kmeans_mode=""):
+                     shadow_model, mode, model_name, num_features, hdbscan_mode=""):
     # 进行MIA评估 黑盒+Shadow辅助数据集
     if mode == 0:
         attack_model = ShadowAttackModel(num_classes)
-        attack_mode0(PATH + kmeans_mode + "_target.pth", PATH + "_shadow.pth", PATH + kmeans_mode, device,
+        attack_mode0(PATH + hdbscan_mode + "_target.pth", PATH + "_shadow.pth", PATH + hdbscan_mode, device,
                      attack_trainloader,
                      attack_testloader,
                      target_model, shadow_model, attack_model, 1, model_name, num_features)
     # 进行MIA评估 黑盒+Partial辅助数据集
     elif mode == 1:
         attack_model = PartialAttackModel(num_classes)
-        attack_mode1(PATH + kmeans_mode + "_target.pth", PATH + kmeans_mode, device, attack_trainloader,
+        attack_mode1(PATH + hdbscan_mode + "_target.pth", PATH + hdbscan_mode, device, attack_trainloader,
                      attack_testloader,
                      target_model,
                      attack_model, 1, model_name, num_features)
