@@ -1,17 +1,8 @@
 import numpy as np
-import torch
 from torch.utils.data import DataLoader, Subset
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-
-from dataloader.dataloader_obesity import Obesity
-from dataloader.dataloader_student import Student
-
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split, cross_val_score
-from torch.utils.data import DataLoader, Subset
 
 
 class QID_VE:

@@ -5,10 +5,10 @@ channels:
 dependencies:
   - python=3.11.*
   - pip
-  - cudatoolkit
   - pip:
     - torchvision
     - scikit-learn
+    - matplotlib
     - tqdm
     - numpy
     - torch

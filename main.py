@@ -1,8 +1,5 @@
 import argparse
 import math
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve
-
 from evaluate.hdbscan_evaluate import HDBSCANDataset, evaluate_attack_model, test_hdbscan_mia, get_attack_dataset_with_shadow_hdbscan
 from evaluate.mia_evaluate import *
 from dataloader.dataloader_adult import Adult
@@ -12,8 +9,9 @@ from dataloader.dataloader_student import Student
 from evaluate.qid_evaluate import QID_VE
 from models.train_models import *
 from models.define_models import *
-import matplotlib.pyplot as plt
-import csv
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 def test_QID(dataset_name):
     if dataset_name == "student" or dataset_name == "protected_student":

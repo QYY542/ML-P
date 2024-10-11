@@ -2,12 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
-
 from torch.optim import lr_scheduler
-from torch.utils.data import Dataset
-
 
 class target_model_training():
     def __init__(self, trainloader, testloader, model, device, num_features, model_name):

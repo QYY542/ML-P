@@ -2,13 +2,9 @@ import os
 import glob
 import torch
 import pickle
-import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
-
-from torch.optim import lr_scheduler
 from sklearn.metrics import f1_score, roc_auc_score
 
 

@@ -1,6 +1,4 @@
 from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import cosine_distances
-from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import DataLoader, Subset
 import numpy as np
@@ -8,13 +6,11 @@ import hdbscan
 import pickle
 import torch.nn.functional as F
 import numpy as np
-from sklearn.metrics import f1_score, roc_auc_score, roc_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch.utils.data import DataLoader, Subset
 import matplotlib.pyplot as plt
-from dataloader.dataloader_attack import get_attack_dataset_with_shadow, get_attack_dataset_without_shadow
-from evaluate.mia_evaluate import attack_for_blackbox, attack_mode0, attack_mode1
+from evaluate.mia_evaluate import attack_mode0, attack_mode1
 from models.define_models import ShadowAttackModel, PartialAttackModel
 
 
