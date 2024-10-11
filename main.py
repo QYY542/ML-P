@@ -272,7 +272,7 @@ def main():
 
     # 处理从命令行获得的参数
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    device = torch.device("cuda")
+    device = torch.device("cuda:"+args.gpu if torch.cuda.is_available() else "cpu")
     dataset_name = args.dataset
     model_name = args.model
     mode = args.mode
