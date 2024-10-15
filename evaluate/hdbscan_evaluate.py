@@ -139,8 +139,6 @@ class HDBSCANDataset:
 
         # 随机选择数据集和测试数据集
         random_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
-        test_indices = np.random.choice(range(len(self.dataset)), n, replace=False)
-        random_shadow_indices = np.random.choice(range(len(self.dataset)), 2 * n, replace=False)
 
         # 画样本点图
         # self.visualize_clusters(X_scaled, labels, pca, label_color_map)
@@ -156,17 +154,10 @@ class HDBSCANDataset:
         high_distance_dataset = Subset(self.dataset, high_distance_indices)
         noise_dataset = Subset(self.dataset, selected_noise_indices)  # 创建噪声点的数据集
         random_dataset = Subset(self.dataset, random_indices)
-        test_dataset = Subset(self.dataset, test_indices)
-        random_shadow_dataset = Subset(self.dataset, random_shadow_indices)
 
         low_distance_values = distances[low_distance_indices]
         high_distance_values = distances[high_distance_indices]
         random_shadow_values = distances[random_indices]
-
-        without_low_distance_indices = [index for index in range(len(self.dataset)) if
-                                        index not in low_distance_indices]
-        without_low_distance_dataset = Subset(self.dataset, without_low_distance_indices)
-
 
         print("簇内聚类距离小的样本分数:", low_distance_values)
         print("簇内聚类距离大的样本分数:", high_distance_values)
@@ -174,7 +165,7 @@ class HDBSCANDataset:
         print("聚类距离随机的样本分数:", random_shadow_values)
         print(len(noise_indices))
 
-        return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset, test_dataset, random_shadow_dataset, distances
+        return low_distance_dataset, high_distance_dataset, noise_dataset, random_dataset
 
 
 def evaluate_attack_model(model_path, test_set_path, result_path, num_classes):
